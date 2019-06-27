@@ -41,6 +41,7 @@ setup(
         'matplotlib', 
         'tqdm', 
         'folium', 
-        'colorama'
+        'colorama',
+        'plotly'
         ],
 )

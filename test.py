@@ -3,6 +3,10 @@ import pycmap
 cmap = pycmap.API('4f101ed0-1f13-41a5-ab7d-2c11a405a326')
 cmap = pycmap.API('90d862e0-8d49-11e9-8d22-0f5810db0206')
 
+
+
+
+
 # df = cmap.query('select * from tblSensors')
 
 
@@ -28,6 +32,29 @@ cmap = pycmap.API('90d862e0-8d49-11e9-8d22-0f5810db0206')
 
 
 
-df = cmap.space_time('tblsst_AVHRR_OI_NRT', 'sst', '2016-04-30', '2016-04-30', 10, 70, -180, -80, 0, 0.5)
-print(df)
+# df = cmap.space_time('tblsst_AVHRR_OI_NRT', 'sst', '2016-04-30', '2016-04-30', 10, 70, -180, -80, 0, 0.5)
 
+
+# df = cmap.get_metadata('tblsst_AVHRR_OI_NRT', 'sst')
+
+
+
+
+# from pycmap.bokehHist import BokehHist
+# table = 'tblsst_AVHRR_OI_NRT'
+# variable = 'sst'
+# df = cmap.space_time(table, variable, '2016-04-30', '2016-04-30', 10, 70, -180, -80, 0, 0.5)
+# hist = BokehHist(df, table, variable)
+# hist.xlabel = variable
+# hist.ylabel = 'Density'
+# hist.legend = variable
+# hist.render()
+
+
+
+from pycmap.plotHist import plot_hist
+
+table = ['tblsst_AVHRR_OI_NRT', 'tblAltimetry_REP']
+variable = ['sst', 'sla']
+exportDataFlag = False
+plot_hist(table, variable, '2016-04-30', '2016-04-30', 10, 70, -180, -80, 0, 0.5, exportDataFlag)

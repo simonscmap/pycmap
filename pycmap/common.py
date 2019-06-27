@@ -1,5 +1,6 @@
 import os
 import sys
+from tqdm import tqdm
 from colorama import Fore, Back, Style, init
 import pandas as pd
 
@@ -11,6 +12,15 @@ def halt(msg):
         print(Style.RESET_ALL, end='')
         sys.exit(1)
         return
+
+def print_tqdm(msg, err=False):
+    # init()
+    if err:
+        tqdm.write(Fore.RED + msg)        
+    else:    
+        tqdm.write(msg)
+    tqdm.write(Style.RESET_ALL, end='')
+    return
 
 def get_base_url():
         return os.environ.get(
@@ -72,3 +82,7 @@ def get_token():
 
 def get_vizEngine():
         return load_config()['vizEngine'][0]
+
+
+def get_bokeh_tools():
+        return 'pan,wheel_zoom,zoom_in,zoom_out,box_zoom, undo,redo,reset,tap,save,box_select,poly_select,lasso_select'        

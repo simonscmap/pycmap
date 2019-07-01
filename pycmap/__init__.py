@@ -7,7 +7,6 @@ from .cmap import API  # noqa
 
 
 
-
 if sys.version_info < (3, 0):
     warnings.warn(
         ('Python 2 is not supported anymore. '

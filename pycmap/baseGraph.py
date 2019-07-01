@@ -8,10 +8,12 @@ Function: Abstraction of base class for graphs.
 
 
 from abc import ABCMeta, abstractmethod
+import os
+from .common import inline, get_vizEngine, get_figure_dir 
 import numpy as np
 import pandas as pd
-from .common import halt
-
+from bokeh.io import output_notebook
+import plotly
 
 class ValidationException(Exception):
     pass
@@ -27,6 +29,8 @@ class BaseGraph(object):
 
     def __init__(self):        
         """
+        :param int width: graph's width in pixels.
+        :param int height: graph's height in pixels.
         :param array x: input data to be visualized.
         :param array y: input data to be visualized.
         :param array z: input data to be visualized.
@@ -35,16 +39,38 @@ class BaseGraph(object):
         :param str ylabel: the graphs's y-axis label.
         :param str zlabel: the graphs's z-axis label.
         :param str legend: the graphs's legend.
+        :param str unit: data unit (if applicable).
         :param float vmin: lower bound of data range (applicable to plots like maps and contours).
         :param float vmax: upper bound of data range (applicable to plots like maps and contours).
         :param str cmap: color map (applicable to plots like maps and contours).
         """
-        pass
+        self.__width = 800
+        self.__height = 400
+        self.__x = np.array([])
+        self.__y = np.array([])
+        self.__z = np.array([])
+        self.__title = ''
+        self.__xlabel = ''
+        self.__ylabel = ''
+        self.__zlabel = ''
+        self.__legend = ''
+        self.__unit = ''
+        self.__vmin = None
+        self.__vmax = None
+        self.__cmap = ''
+
+        return
 
 
     @abstractmethod
     def render(self):
-        pass
+        if inline():
+            if get_vizEngine().lower().strip() == 'bokeh': output_notebook()
+            if get_vizEngine().lower().strip() == 'plotly': plotly.offline.init_notebook_mode(connected=True)
+        else:    
+            figureDir = get_figure_dir()
+            if not os.path.exists(figureDir): os.makedirs(figureDir)
+
 
     @staticmethod
     def valid_data(data):
@@ -52,6 +78,23 @@ class BaseGraph(object):
         res = isinstance(data, list) or isinstance(data, np.ndarray) or isinstance(data, pd.core.series.Series)
         msg = 'The input data should be of type list, or numpy array, or pandas series.'
         return res, msg
+
+
+    @property
+    def width(self):
+        return self.__width   
+
+    @width.setter
+    def width(self, width):
+        self.__width = width
+
+    @property
+    def height(self):
+        return self.__height   
+
+    @height.setter
+    def height(self, height):
+        self.__height = height
 
 
     @property
@@ -131,6 +174,15 @@ class BaseGraph(object):
         self.__legend = legend                        
 
     @property
+    def unit(self):
+        return self.__unit   
+        
+    @unit.setter
+    def unit(self, unit):
+        if not isinstance(unit, str): raise ValidationException('unit must be of type string.')    
+        self.__unit = unit                        
+
+    @property
     def vmin(self):
         return self.__vmin
         
@@ -156,5 +208,5 @@ class BaseGraph(object):
         
     @cmap.setter
     def cmap(self, cmap):
-        if not isinstance(cmap, str): raise ValidationException('cmap must be of type string.')    
+        # if not isinstance(cmap, str): raise ValidationException('cmap must be of type string.')    
         self.__cmap = cmap                        

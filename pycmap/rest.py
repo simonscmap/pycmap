@@ -65,25 +65,40 @@ class _REST(object):
 
     def __init__(self,
                  token=None,
-                 base_url=None,
+                 baseURL=None,
                  headers=None,
-                 vizEngine='bokeh'):
+                 vizEngine=None,
+                 exportDir=None,
+                 exportFormat=None,
+                 figureDir=None,
+                 ):
         """
         :param str token: access token to make client requests.
-        :param str base_url: root endpoint of Simons CMAP API.
-        :param dict headers: Additional headers to add to requests.
+        :param str baseURL: root endpoint of Simons CMAP API.
+        :param dict headers: additional headers to add to requests.
+        :param str vizEngine: data visualization library used to render the graphs.
+        :param str exportDir: path to local directory where the exported data are stored.
+        :param str exportFormat: file format of the exported files.
         """
 
         self._token = token or get_token()
-        self._base_url = base_url or get_base_url()
+        self._baseURL = baseURL or get_base_url()
         self._headers = headers
         self._token_prefix = 'Api-Key '
         self._vizEngine = vizEngine
+        self._exportDir = exportDir
+        self._exportFormat = exportFormat
+        self._figureDir = figureDir
+        
+        save_config(
+                    token=self._token, 
+                    vizEngine=self._vizEngine, 
+                    exportDir=self._exportDir, 
+                    exportFormat=self._exportFormat,
+                    figureDir=self._figureDir 
+                    )
 
-        save_config(token=self._token, vizEngine=self._vizEngine)
-
-        assert len(self._token) > 0, \
-            'API key cannot be empty.'
+        assert len(self._token) > 0, 'API key cannot be empty.'
         assert self._headers is None or isinstance(self._headers, dict), \
             'Expected dict, got %r' % self._headers
 
@@ -93,9 +108,9 @@ class _REST(object):
         route,
         method='GET',
         payload=None,
-        base_url=None
+        baseURL=None
     ):
-        base_url = base_url or self._base_url
+        baseURL = baseURL or self._baseURL
         headers = {'Authorization': self._token_prefix + self._token}
         if method.upper().strip() == 'GET':
             return self._atomic_get(route, headers, payload)
@@ -112,7 +127,7 @@ class _REST(object):
             url_safe_query = ''
             if payload is not None:
                 url_safe_query = urlencode(payload)
-            url = self._base_url + route + url_safe_query
+            url = self._baseURL + route + url_safe_query
             resp = requests.get(url, headers=headers)  
             if resp.text.lower().strip() == 'unauthorized':
                 halt('Unauthorized API key!')
@@ -239,7 +254,7 @@ class _REST(object):
         query = "SELECT COL_LENGTH('%s', '%s') AS RESULT " % (tableName, varName)
         return False if self.query(query)['RESULT'][0] == None else True
 
-    def isGrid(self, tableName, varName):
+    def is_grid(self, tableName, varName):
         """Returns a boolean indicating whether the variable is a gridded product or has irregular spatial resolution."""
         grid = True
         query = "SELECT Spatial_Res_ID, RTRIM(LTRIM(Spatial_Resolution)) AS Spatial_Resolution FROM tblVariables "

@@ -39,6 +39,7 @@ setup(
         'scipy', 
         'bokeh', 
         'matplotlib', 
+        'cmocean',
         'tqdm', 
         'folium', 
         'colorama',

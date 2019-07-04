@@ -1,10 +1,19 @@
+"""
+Author: Mohammad Dehghani Ashkezari <mdehghan@uw.edu>
+
+Date: 2019-06-28
+
+Function: Host a collection of shared multi-purpose helper functions.
+"""
+
 import os
 import sys
 from tqdm import tqdm
 from colorama import Fore, Back, Style, init
 import numpy as np
 import pandas as pd
-
+import webbrowser
+import IPython
 
 
 def halt(msg):
@@ -15,6 +24,7 @@ def halt(msg):
         return
 
 def print_tqdm(msg, err=False):
+        """Print helper function compatible with tqdmm progressbar."""
         # init()
         if err:
                 tqdm.write(Fore.RED + msg)        
@@ -24,11 +34,13 @@ def print_tqdm(msg, err=False):
         return
 
 def get_base_url():
+        """Returns API root endpoint."""
         return os.environ.get(
         'CMAP_API_BASE_URL', 'https://simonscmap.com').rstrip('/')
 
 
 def jupytered():
+        """Returns True if jupyter notebook has invoked the package."""
         jup = False
         import __main__ as main
         if not hasattr(main, '__file__'):
@@ -36,11 +48,11 @@ def jupytered():
         return jup
 
 def inline():
-        """Returns True if jupyter notebook has invoked the package."""            
-        res = False
-        if jupytered():
-                res = True
-        return  res 
+        """
+        Checks if the package results should get prepared for an "inline" context.        
+        Currently, just calls the jupytered function.
+        """            
+        return jupytered() 
 
 
 def make_filename_by_table_var(table, variable, prefix=''):
@@ -159,3 +171,24 @@ def get_figure_dir():
 def get_bokeh_tools():
         """Returns a list tools used along with a bokeh graph."""
         return 'crosshair,pan,zoom_in,wheel_zoom,zoom_out,box_zoom,reset,save'        
+
+
+
+def normalize(vals, min_max=False):
+    """Takes an array and either normalize to min/max, standardize it (remove the mean and divide by standard deviation)."""      
+    if min_max:
+        normalized_vals=(vals-np.nanmin(vals))/(np.nanmax(vals)-np.nanmin(vals))
+    else:    
+        normalized_vals=(vals-np.nanmean(vals))/np.nanstd(vals)
+    return normalized_vals
+
+
+def open_HTML(path):
+    """Display HTML file by defaut browser or inline in case jupyter is the caller."""    
+    if jupytered():
+        vObj = IPython.display.IFrame(path, width=800, height=400)
+        IPython.display.display(vObj)
+    else:
+        path = 'file://' + os.path.realpath(path)
+        webbrowser.open(path, new=2)
+    return

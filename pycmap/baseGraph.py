@@ -12,6 +12,8 @@ import os
 from .common import inline, get_vizEngine, get_figure_dir 
 import numpy as np
 import pandas as pd
+import matplotlib as plt
+import matplotlib.cm as cm
 from bokeh.io import output_notebook
 import plotly
 
@@ -43,7 +45,9 @@ class BaseGraph(object):
         :param float vmin: lower bound of data range (applicable to plots like maps and contours).
         :param float vmax: upper bound of data range (applicable to plots like maps and contours).
         :param str cmap: color map (applicable to plots like maps and contours).
+        :param str plotlyConfig: plotly config object (only applicable to plotly graphs).
         """
+
         self.__width = 800
         self.__height = 400
         self.__x = np.array([])
@@ -58,12 +62,17 @@ class BaseGraph(object):
         self.__vmin = None
         self.__vmax = None
         self.__cmap = ''
-
+        self.__plotlyConfig = {
+            'showLink': True, 
+            'editable':False, 
+            'staticPlot': False
+            }
         return
 
 
     @abstractmethod
     def render(self):
+        """Parent render function; will be extended by derived classes."""
         if inline():
             if get_vizEngine().lower().strip() == 'bokeh': output_notebook()
             if get_vizEngine().lower().strip() == 'plotly': plotly.offline.init_notebook_mode(connected=True)
@@ -78,6 +87,21 @@ class BaseGraph(object):
         res = isinstance(data, list) or isinstance(data, np.ndarray) or isinstance(data, pd.core.series.Series)
         msg = 'The input data should be of type list, or numpy array, or pandas series.'
         return res, msg
+
+
+    def _save_plotly_(self, go, data, layout):
+        """
+        Saves a plotly figure on local disk.
+        Not meant to be called by user.
+        """
+        fig = go.Figure(data=data, layout=layout)
+        if not self.__plotlyConfig.get('staticPlot'):
+            if inline():
+                plotly.offline.iplot(fig, config=self.plotlyConfig)
+            else:                
+                plotly.offline.plot(fig, config=self.plotlyConfig, filename=get_figure_dir() + self.variable + '.html')
+        else:
+            plotly.io.write_image(fig, get_figure_dir() + self.variable + '.png')
 
 
     @property
@@ -208,5 +232,30 @@ class BaseGraph(object):
         
     @cmap.setter
     def cmap(self, cmap):
-        # if not isinstance(cmap, str): raise ValidationException('cmap must be of type string.')    
+        """Gets cmap as string (matplotlib colormap names) or cmocean colormap and makes it compatible with suppoerted vizEngine."""
+        colormap =cm.get_cmap(cmap)        
+        if get_vizEngine().lower().strip() == 'bokeh':     
+            paletteName = [plt.colors.rgb2hex(m) for m in colormap(np.arange(colormap.N))]
+            cmap = paletteName
+        elif get_vizEngine().lower().strip() == 'plotly':
+            pl_entries = 255
+            h = 1.0/(pl_entries-1)
+            pl_colorscale = []
+            for k in range(pl_entries):
+                C = list(map(np.uint8, np.array(colormap(k*h)[:3])*255))
+                pl_colorscale.append([k*h, 'rgb'+str((C[0], C[1], C[2]))])
+            cmap = pl_colorscale
         self.__cmap = cmap                        
+
+
+
+    @property
+    def plotlyConfig(self):
+        return self.__plotlyConfig
+        
+    @plotlyConfig.setter
+    def plotlyConfig(self, plotlyConfig):
+        if not isinstance(plotlyConfig, dict): 
+            raise ValidationException('plotlyConfig must be of type dict.')    
+        self.__plotlyConfig = plotlyConfig                                
+

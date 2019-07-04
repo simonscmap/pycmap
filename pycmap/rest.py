@@ -104,12 +104,12 @@ class _REST(object):
 
 
     def _request(
-        self,
-        route,
-        method='GET',
-        payload=None,
-        baseURL=None
-    ):
+                self,
+                route,
+                method='GET',
+                payload=None,
+                baseURL=None
+                ):
         baseURL = baseURL or self._baseURL
         headers = {'Authorization': self._token_prefix + self._token}
         if method.upper().strip() == 'GET':
@@ -117,12 +117,12 @@ class _REST(object):
         else:
             return None
 
+
     def _atomic_get(self, route, headers, payload):
-        '''
+        """
         Submits a single GET request. Returns the body in form of pandas dataframe if 200 status.
-        '''
-        
-        df = None
+        """               
+        df = pd.DataFrame({})
         try:
             url_safe_query = ''
             if payload is not None:
@@ -138,6 +138,7 @@ class _REST(object):
             # look for resp.status_code
             raise
         return df
+
 
     @staticmethod
     def time_first(df):
@@ -155,6 +156,7 @@ class _REST(object):
         df = swap_first_col(df, 'month', cols)
         df = swap_first_col(df, 'time', cols)
         return df
+
 
     @staticmethod
     def validate_sp_args(
@@ -210,11 +212,13 @@ class _REST(object):
             halt(msg)    
         return msg
 
+
     def query(self, query):
         """Takes a custom query and returns the results in form of a dataframe."""
         route = '/dataretrieval/query?'
         payload = {'query': query}
         return self._request(route, method='GET', payload=payload)        
+
 
     def stored_proc(self, query, args):
         """Executes a strored-procedure and returns the results in form of a dataframe."""
@@ -234,25 +238,31 @@ class _REST(object):
         }
         self.validate_sp_args(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9])
         df = self._request(route, method='GET', payload=payload)   
-        return self.time_first(df)           
+        if len(df)>0: df = self.time_first(df)
+        return df           
+
 
     def get_catalog(self):
         """Returns a dataframe containing full Simons CMAP catalog of variables."""
         return self.query('SELECT * FROM dbo.udfCatalog()')
+
 
     def get_var(self, tableName, varName):
         """Returns a single-row dataframe from tblVariables containing info associated with varName."""
         query = "SELECT * FROM tblVariables WHERE Table_Name='%s' AND Short_Name='%s'" % (tableName, varName)
         return self.query(query)
 
+
     def get_unit(self, tableName, varName):
         """Returns the unit for a given variable."""
         return ' [' + self.get_var(tableName, varName).iloc[0]['Unit'] + ']'    
+
 
     def has_field(self, tableName, varName):
         """Returns a boolean confirming whether a field (varName) exists in a table (data set)."""
         query = "SELECT COL_LENGTH('%s', '%s') AS RESULT " % (tableName, varName)
         return False if self.query(query)['RESULT'][0] == None else True
+
 
     def is_grid(self, tableName, varName):
         """Returns a boolean indicating whether the variable is a gridded product or has irregular spatial resolution."""
@@ -267,14 +277,17 @@ class _REST(object):
             grid = False
         return grid
 
+
     def get_references(self, datasetID):
         """Returns a dataframe containing refrences associated with a data set."""
         query = "SELECT Reference FROM dbo.udfDatasetReferences(%d)" % datasetID
         return self.query(query)
 
+ 
     def get_metadata_noref(self, table, variable):
         query = "SELECT * FROM dbo.udfMetaData_NoRef('%s', '%s')" % (variable, table)
         return self.query(query)
+
 
     def get_metadata(self, table, variable):
         """Returns a dataframe containing the associated metadata."""
@@ -283,11 +296,13 @@ class _REST(object):
         refs = self.get_references(datasetID)
         return pd.concat([df, refs], axis=1) 
 
+
     def subset(self, spName, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2):     
         """Returns a subset of data according to space-time constraints."""
         query = 'EXEC {} ?, ?, ?, ?, ?, ?, ?, ?, ?, ?'.format(spName)
         args = [table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2]
         return self.stored_proc(query, args)  
+
 
     def space_time(self, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2):     
         """
@@ -296,6 +311,7 @@ class _REST(object):
         """
         return self.subset('uspSpaceTime', table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2)
 
+
     def time_series(self, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2):     
         """
         Returns a subset of data according to space-time constraints.
@@ -303,12 +319,14 @@ class _REST(object):
         """
         return self.subset('uspTimeSeries', table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2)
 
+
     def depth_profile(self, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2):     
         """
         Returns a subset of data according to space-time constraints.
         The results are aggregated by depth and ordered by depth.
         """
         return self.subset('uspDepthProfile', table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2)
+
 
     def section(self, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2):     
         """

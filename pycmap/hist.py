@@ -44,6 +44,7 @@ class Hist(BaseGraph):
         self.pdf = pdf
 
     def render(self):
+        """Display the graph object."""
         super().render()
 
     def graph_obj(self):
@@ -87,7 +88,6 @@ class HistBokeh(Hist):
         :param float fillAlpha: bar opacity.
         :param float hoverAlpha: bar opacity when mouse hover over.
         """
-
         super().__init__(data, variable, bins, pdf)
         self.toolbarLocation = toolbarLocation
         self.fillColor = fillColor
@@ -100,6 +100,7 @@ class HistBokeh(Hist):
 
 
     def render(self):
+        """Display the graph object."""
         super().render()
         y = self.data[self.variable]
         try:    
@@ -141,7 +142,6 @@ class HistPlotly(Hist):
     """
     Use this class to make histogram graphs using plotly library.
     """
-
     def __init__(
                 self, 
                 data, 
@@ -154,12 +154,12 @@ class HistPlotly(Hist):
         """
         :param float fillAlpha: bar opacity.
         """
-
         super().__init__(data, variable, bins, pdf)
         self.fillAlpha = fillAlpha
 
 
     def render(self):
+        """Display the graph object."""
         super().render()
 
         histnorm = 'probability density' if self.pdf else ''
@@ -181,9 +181,4 @@ class HistPlotly(Hist):
                            xaxis={'title': self.xlabel},
                            yaxis={'title': self.ylabel}
                           )  
-                 
-        fig = go.Figure(data=data, layout=layout)
-        if inline():
-            plotly.offline.iplot(fig)
-        else:
-            plotly.offline.plot(fig, filename=get_figure_dir() + self.variable + ".html")
+        self._save_plotly_(go, data, layout)                     

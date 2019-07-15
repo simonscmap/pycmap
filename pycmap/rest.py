@@ -15,12 +15,12 @@ from urllib.parse import urlencode
 import pandas as pd
 from .common import (
     halt,
+    print_tqdm,
     get_base_url,
     get_token,
-    save_config
+    save_config, 
+    inline
 )
-
-
 
 
 
@@ -54,7 +54,6 @@ class APIError(Exception):
     def response(self):
         if self._http_error is not None:
             return self._http_error.response
-
 
 
 
@@ -133,28 +132,10 @@ class _REST(object):
                 halt('Unauthorized API key!')
             if resp.text != '':
                 json_list = [orjson.loads(line) for line in resp.text.splitlines()]
-                df = pd.DataFrame(json_list)
+                df = pd.DataFrame(json_list, columns=list(json_list[0]))
         except HTTPError as http_error:
             # look for resp.status_code
             raise
-        return df
-
-
-    @staticmethod
-    def time_first(df):
-        """Makes sure that the 'time' column, if exists, is always the first column of the dataframe."""
-        def swap_first_col(df, col, cols):            
-            if col in cols:
-                oldIndex = cols.index(col)
-                firstCol = cols[0]
-                cols[0] = col
-                cols[oldIndex] = firstCol
-                df = df[cols]
-            return df    
-        cols = list(df.columns)
-        df = swap_first_col(df, 'year', cols)
-        df = swap_first_col(df, 'month', cols)
-        df = swap_first_col(df, 'time', cols)
         return df
 
 
@@ -185,7 +166,6 @@ class _REST(object):
         :param float depth2: end depth [m].
         """
 
-        valid = True
         msg = ''
         if not isinstance(table, str):
             msg += 'table name should be string. \n'
@@ -238,7 +218,6 @@ class _REST(object):
         }
         self.validate_sp_args(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9])
         df = self._request(route, method='GET', payload=payload)   
-        if len(df)>0: df = self.time_first(df)
         return df           
 
 
@@ -277,6 +256,15 @@ class _REST(object):
             grid = False
         return grid
 
+    @staticmethod
+    def is_climatology(tableName):
+        """
+        Returns True if the table represents a climatological data set.    
+        Currently, the logic is based on the table name.
+        Ultimately, it should query the DB to determine if it's a climatological data set.
+        """
+        return True if tableName.find('_Climatology') != -1 else False  
+
 
     def get_references(self, datasetID):
         """Returns a dataframe containing refrences associated with a data set."""
@@ -287,14 +275,26 @@ class _REST(object):
     def get_metadata_noref(self, table, variable):
         query = "SELECT * FROM dbo.udfMetaData_NoRef('%s', '%s')" % (variable, table)
         return self.query(query)
-
+        
 
     def get_metadata(self, table, variable):
-        """Returns a dataframe containing the associated metadata."""
-        df = self.get_metadata_noref(table, variable)
-        datasetID = df.iloc[0]['Dataset_ID']
-        refs = self.get_references(datasetID)
-        return pd.concat([df, refs], axis=1) 
+        """
+        Returns a dataframe containing the associated metadata.
+        The inputs cane be string literals (if only one table, and variable is passed) or a list of string literals.
+        """
+        if isinstance(table, str): table = [table]
+        if isinstance(variable, str): variable = [variable]
+        metadata = pd.DataFrame({})    
+        for i in range(len(table)):    
+            df = self.get_metadata_noref(table[i], variable[i])
+            datasetID = df.iloc[0]['Dataset_ID']
+            refs = self.get_references(datasetID)
+            df = pd.concat([df, refs], axis=1)
+            if i == 0:
+                metadata = df
+            else:    
+                metadata = pd.concat([metadata, df], axis=0, sort=False)
+        return metadata 
 
 
     def subset(self, spName, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2):     
@@ -312,12 +312,37 @@ class _REST(object):
         return self.subset('uspSpaceTime', table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2)
 
 
-    def time_series(self, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2):     
+    @staticmethod
+    def _interval_to_uspName(interval):
+        if interval is None or interval == '':
+            return 'uspTimeSeries'
+        interval = interval.lower().strip()
+        if interval in ['w', 'week', 'weekly']:
+            usp = 'uspWeekly'
+        elif interval in ['m', 'month', 'monthly']:
+            usp = 'uspMonthly'
+        elif interval in ['q', 's', 'season', 'seasonal', 'seasonality', 'quarterly']:
+            usp = 'uspQuarterly'
+        elif interval in ['y', 'a', 'year', 'yearly', 'annual']:
+            usp = 'uspAnnual'
+        else:
+            halt('Invalid interval: %s' % interval)
+        return usp
+
+
+    def time_series(self, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, interval=None):     
         """
         Returns a subset of data according to space-time constraints.
         The results are aggregated by time and ordered by time, lat, lon, and depth (if exists).
+        The timeseries data can be binned weekyly, monthly, qurterly, or annualy, if interval variable is set (this feature is not applicable to climatological data sets). 
         """
-        return self.subset('uspTimeSeries', table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2)
+        usp = self._interval_to_uspName(interval)
+        if usp != 'uspTimeSeries' and self.is_climatology(table):
+            print_tqdm(
+                'Custom binning (monthly, weekly, ...) is not suppoerted for climatological data sets. Table %s represents a climatological data set.' % table, 
+                err=True)
+            return pd.DataFrame({})
+        return self.subset(usp, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2)
 
 
     def depth_profile(self, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2):     
@@ -336,8 +361,18 @@ class _REST(object):
         return self.subset('uspSectionMap', table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2)
 
 
-
-
+    def match(self, sourceTable, sourceVar, targetTables, targetVars, 
+             dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, 
+             temporalTolerance, latTolerance, lonTolerance, depthTolerance):     
+        """
+        Colocalizes the source variable (from source table) with the target variable (from target table).
+        The tolerance parameters set the matching boundaries between the source and target data sets. 
+        Returns a dataframe containing the source variable joined with the target variable.
+        """
+        from .match import Match 
+        return Match('uspMatch', sourceTable, sourceVar, targetTables, targetVars,
+                     dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2,
+                     temporalTolerance, latTolerance, lonTolerance, depthTolerance).compile()
 
 
 

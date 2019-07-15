@@ -17,6 +17,7 @@ import IPython
 
 
 def halt(msg):
+        msg = '\n' + msg
         init(convert=True)
         print(Fore.RED + msg, file=sys.stderr)    
         print(Style.RESET_ALL, end='')
@@ -26,6 +27,7 @@ def halt(msg):
 def print_tqdm(msg, err=False):
         """Print helper function compatible with tqdmm progressbar."""
         # init()
+        msg = '\n' + msg
         if err:
                 tqdm.write(Fore.RED + msg)        
         else:    

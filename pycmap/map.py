@@ -44,20 +44,23 @@ class Map(BaseGraph):
                 self, 
                 data, 
                 variable,
-                levels=0
+                levels=0,
+                surface3D=False
                 ):
 
         """
         :param dataframe data: data to be visualized.
         :param str variable: variable name.
         :param int levels: number of contour levels. If zero, heatmap is created. If greater than zero, contour lines are superimposed on the heatmap. Currently, contour graphs are created by plotly library.
+        :param bool surface3D: if true, creates a 3D surface plot (only available through plotly library).
         """
         super().__init__()
         self.data = data
         self.variable = variable
         self.vmin, self.vmax = get_data_limits(self.data[self.variable])
         self.cmap = getPalette(self.variable)
-        self.levels = int(np.abs(levels))        
+        self.levels = int(np.abs(levels))       
+        self.surface3D = surface3D 
 
 
     def render(self):
@@ -70,11 +73,13 @@ class Map(BaseGraph):
         obj = None
         if self.levels > 0 and vizEngine=='bokeh':
             warnings.warn('Please switch the vizEngine to "plotly" to create contour plots.', UserWarning)
+        if self.surface3D and vizEngine!='plotly':
+            warnings.warn('Please switch the vizEngine to "plotly" to create 3D surface plots.', UserWarning)
 
         if vizEngine == 'bokeh':
-            obj = MapBokeh(self.data, self.variable, self.levels)
+            obj = MapBokeh(self.data, self.variable, self.levels, self.surface3D)
         elif vizEngine == 'plotly':
-            obj = MapPlotly(self.data, self.variable, self.levels)
+            obj = MapPlotly(self.data, self.variable, self.levels, self.surface3D)
         return obj         
 
 
@@ -129,6 +134,7 @@ class MapBokeh(Map):
                 data, 
                 variable, 
                 levels,
+                surface3D,
                 toolbarLocation='right'
                 ):
 
@@ -139,7 +145,7 @@ class MapBokeh(Map):
         :param str toolbarLocation: location of graph toolbar.
         """
 
-        super().__init__(data, variable, levels)
+        super().__init__(data, variable, levels, surface3D)
         self.toolbarLocation = toolbarLocation
         self.tools = get_bokeh_tools()
 
@@ -212,22 +218,24 @@ class MapPlotly(Map):
                 self, 
                 data, 
                 variable,
-                levels
+                levels,
+                surface3D
                 ):
 
         """
         :param dataframe data: data to be visualized.
         :param str variable: variable name.
         :param int levels: number of contour levels. if zero, heatmap is created.
+        :param bool surface3D: if true, creates a 3D surface plot (only available through plotly library).
         """
-        super().__init__(data, variable, levels)
+        super().__init__(data, variable, levels, surface3D)
 
 
     def render(self):
         """Display the graph object."""
         super().render()
-        layers, titles, lat, lon = self.make_layers()
-        LON, LAT = np.meshgrid(lon, lat)
+        layers, titles, latVect, lonVect = self.make_layers()
+        LON, LAT = np.meshgrid(lonVect, latVect)
         lon = LON.flatten()
         lat = LAT.flatten()
         for i in range(len(layers)):
@@ -268,6 +276,8 @@ class MapPlotly(Map):
                                     # line=dict(smoothing=0.85)             
                                     )
                         ]                
+
+
             layout = go.Layout(
                             autosize=False,
                             title=titles[i],
@@ -276,5 +286,32 @@ class MapPlotly(Map):
                             xaxis={'title': self.xlabel},
                             yaxis={'title': self.ylabel}
                             )  
-                    
+
+
+
+            if self.surface3D:
+                data = [
+                        go.Surface(
+                                    x=lonVect,
+                                    y=latVect,
+                                    z=layers[i],
+                                    colorscale=self.cmap,
+                                    # hoverinfo='text',
+                                    # text=hovertext            
+                                    )
+                        ]
+
+                layout = go.Layout(
+                                  autosize=False,
+                                  title=titles[i],
+                                  width=self.width,
+                                  height=self.height,
+                                  scene = dict(
+                                              xaxis={'title': self.xlabel},
+                                              yaxis={'title': self.ylabel},
+                                              zaxis={'title': self.variable + self.unit}
+                                              )
+                                  )  
+
+
             self._save_plotly_(go, data, layout)                     

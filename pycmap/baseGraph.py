@@ -36,6 +36,9 @@ class BaseGraph(object):
         :param array x: input data to be visualized.
         :param array y: input data to be visualized.
         :param array z: input data to be visualized.
+        :param array xErr: uncertainty associated with the input data.
+        :param array yErr: uncertainty associated with the input data.
+        :param array zErr: uncertainty associated with the input data.
         :param str title: the graphs's title.
         :param str xlabel: the graphs's x-axis label.
         :param str ylabel: the graphs's y-axis label.
@@ -53,6 +56,9 @@ class BaseGraph(object):
         self.__x = np.array([])
         self.__y = np.array([])
         self.__z = np.array([])
+        self.__xErr = np.array([])
+        self.__yErr = np.array([])
+        self.__zErr = np.array([])
         self.__title = ''
         self.__xlabel = ''
         self.__ylabel = ''
@@ -96,12 +102,28 @@ class BaseGraph(object):
         """
         fig = go.Figure(data=data, layout=layout)
         if not self.__plotlyConfig.get('staticPlot'):
-            if inline():
-                plotly.offline.iplot(fig, config=self.plotlyConfig)
-            else:                
+            if inline():                
+                plotly.offline.iplot(fig, config=self.plotlyConfig)    
+            else:
                 plotly.offline.plot(fig, config=self.plotlyConfig, filename=get_figure_dir() + self.variable + '.html')
         else:
             plotly.io.write_image(fig, get_figure_dir() + self.variable + '.png')
+
+
+    def _save_figure_factory_(self, fig):
+        """
+        Saves a plotly figure_factory on local disk.
+        Not meant to be called by user.
+        """
+        fname = 'annotated_heatmap'
+        if self.variable is not None and self.variable != '': fname = 'annotated_heatmap_' + self.variable
+        if not self.__plotlyConfig.get('staticPlot'):
+            if inline():                
+                plotly.offline.iplot(fig, config=self.plotlyConfig)
+            else:
+                plotly.offline.plot(fig, config=self.plotlyConfig, filename=get_figure_dir() + fname + '.html')
+        else:
+            plotly.io.write_image(fig, get_figure_dir() + fname + '.png')
 
 
     @property
@@ -129,8 +151,8 @@ class BaseGraph(object):
     def x(self, x):
         valid, msg = self.valid_data(x)
         if not valid: raise ValidationException(msg)    
-        self.__x = x
-        
+        self.__x = x        
+
     @property
     def y(self):
         return self.__y    
@@ -150,6 +172,36 @@ class BaseGraph(object):
         valid, msg = self.valid_data(z)
         if not valid: raise ValidationException(msg)    
         self.__z = z
+
+    @property
+    def xErr(self):
+        return self.__xErr    
+
+    @xErr.setter
+    def xErr(self, xErr):
+        valid, msg = self.valid_data(xErr)
+        if not valid: raise ValidationException(msg)    
+        self.__xErr = xErr
+
+    @property
+    def yErr(self):
+        return self.__yErr    
+
+    @yErr.setter
+    def yErr(self, yErr):
+        valid, msg = self.valid_data(yErr)
+        if not valid: raise ValidationException(msg)    
+        self.__yErr = yErr
+
+    @property
+    def zErr(self):
+        return self.__zErr    
+
+    @zErr.setter
+    def zErr(self, zErr):
+        valid, msg = self.valid_data(zErr)
+        if not valid: raise ValidationException(msg)    
+        self.__zErr = zErr
 
     @property
     def title(self):
@@ -246,8 +298,6 @@ class BaseGraph(object):
                 pl_colorscale.append([k*h, 'rgb'+str((C[0], C[1], C[2]))])
             cmap = pl_colorscale
         self.__cmap = cmap                        
-
-
 
     @property
     def plotlyConfig(self):

@@ -44,16 +44,19 @@ class Trend(BaseGraph):
     def __init__(
                 self, 
                 data, 
-                variable
+                variable, 
+                line=True
                 ):
 
         """
         :param dataframe data: data to be visualized.
         :param str variable: variable name.
+        :param bool line: if True, line plot is added to markers.
         """
         super().__init__()
         self.data = data
         self.variable = variable
+        self.line = line
 
 
     def render(self):
@@ -82,7 +85,8 @@ class TrendBokeh(Trend):
     def __init__(
                 self, 
                 data, 
-                variable, 
+                variable,
+                line=True, 
                 toolbarLocation='above',
                 fillColor='grey', 
                 lineColor='purple', 
@@ -92,7 +96,7 @@ class TrendBokeh(Trend):
                 fillAlpha=0.3,
                 hoverAlpha=0.3,
                 msize=20,
-                climatology=False
+                timeSeries=True
                 ):
 
         """
@@ -105,9 +109,9 @@ class TrendBokeh(Trend):
         :param float fillAlpha: marker opacity.
         :param float hoverAlpha: marker opacity when mouse hover over.
         :param int msize: marker size.
-        :param bool climatology: True if it is climatology data.
+        :param bool timeSeries: True if it is timeSeries data.
         """
-        super().__init__(data, variable)
+        super().__init__(data, variable, line)
         self.toolbarLocation = toolbarLocation
         self.fillColor = fillColor
         self.lineColor = lineColor
@@ -117,7 +121,7 @@ class TrendBokeh(Trend):
         self.fillAlpha = fillAlpha
         self.hoverAlpha = hoverAlpha
         self.msize = msize
-        self.climatology = climatology
+        self.timeSeries = timeSeries
         self.tools = get_bokeh_tools()
 
 
@@ -145,17 +149,18 @@ class TrendBokeh(Trend):
                     legend=self.legend,
                     size=self.msize
                     )
-        p.line(
-              self.x, 
-              self.y, 
-              line_color=self.lineColor, 
-              line_width=self.lineWidth, 
-              legend=self.legend
-              )
+        if self.line:            
+            p.line(
+                self.x, 
+                self.y, 
+                line_color=self.lineColor, 
+                line_width=self.lineWidth, 
+                legend=self.legend
+                )
 
         p.add_tools(HoverTool(tooltips=None, renderers=[cr], mode='hline'))
 
-        if not self.climatology:
+        if self.timeSeries:
             p.xaxis.formatter=DatetimeTickFormatter(
                                                     hours=["%d %B %Y"],
                                                     days=["%d %B %Y"],
@@ -175,14 +180,15 @@ class TrendBokeh(Trend):
 class TrendPlotly(Trend):
     """
     Use this class to make trend graphs using plotly library.
-    """
+    """    
     def __init__(
                 self, 
                 data, 
                 variable, 
+                line=True,
                 color='purple', 
                 fillAlpha=0.6,
-                msize=15,
+                msize=15
                 ):
 
         """
@@ -190,7 +196,7 @@ class TrendPlotly(Trend):
         :param float fillAlpha: line and marker opacity.
         :param int msize: marker size.
         """
-        super().__init__(data, variable)
+        super().__init__(data, variable, line)
         self.fillAlpha = fillAlpha
         self.color = color
         self.fillAlpha = fillAlpha
@@ -201,6 +207,8 @@ class TrendPlotly(Trend):
         """Display the graph object."""
         super().render()
 
+        mode = 'markers'
+        if self.line: mode = 'lines+markers'            
         data = [
                 go.Scatter(
                              x=self.x,
@@ -216,7 +224,7 @@ class TrendPlotly(Trend):
                                          color='rgba(7, 7, 7, .2)',                                         
                                          visible=True
                                          ),
-                             mode = 'lines+markers',
+                             mode = mode,
                              name=self.legend,
                              opacity=self.fillAlpha
                             )

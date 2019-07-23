@@ -21,7 +21,7 @@ from .section import Section
 from .trend import Trend
 from .annotatedHeatmap import AnnotatedHeatmap
 from .export import Export
-from .foliumHeat import folium_map
+from .foliumHeat import folium_map, folium_cruise_track
 import numpy as np
 import pandas as pd
 from tqdm import tqdm 
@@ -111,7 +111,6 @@ def plot_map(tables, variables, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2
     return gos
 
 
-
 def plot_section(tables, variables, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, exportDataFlag=False, show=True, levels=0):
     """
     Create section maps using gridded data. Does not apply to sparse data sets. 
@@ -195,7 +194,7 @@ def plot_timeseries(tables, variables, dt1, dt2, lat1, lat2, lon1, lon2, depth1,
             go.x = data['year'].astype(str) + '-week ' + data['week'].astype(str)
 
         if API().is_climatology(tables[i]):
-            go.climatology = True
+            go.timeSeries = False
             go.x = data[data.columns[0]]
             if 'month' in data.columns:
                 go.xlabel = 'Month' 
@@ -206,6 +205,7 @@ def plot_timeseries(tables, variables, dt1, dt2, lat1, lat2, lon1, lon2, depth1,
     return gos
 
 
+
 def plot_corr_map(
                  sourceTable, sourceVar, targetTables, targetVars, 
                  dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, 
@@ -213,8 +213,8 @@ def plot_corr_map(
                  method='spearman', exportDataFlag=False, show=True
                  ):
     """
-#    Create histogram graph for each variable within a predefined space-time domain. 
-#    Returns the generated graph objects in form of a python list. 
+    Creates an annotated hestmap illustrating the degree of correlation between each pair of the variables within the resulting matched dataframe.
+    Returns the generated heatmap objects.
     """   
 
     data = API().match(
@@ -223,7 +223,7 @@ def plot_corr_map(
                       temporalTolerance, latTolerance, lonTolerance, depthTolerance
                       )
     if len(data) < 1:
-        print_tqdm('somthing went wrong during the matching process!', err=True)
+        print_tqdm('No matching results returned!', err=True)
         return
     data_org = data.copy()
     # remove time and standard deviation columns
@@ -249,10 +249,127 @@ def plot_corr_map(
     go.vmin = -1
     go.vmax = 1
     go.variable = sourceVar
-    go.title = 'Correlation Matrix'
+    # go.title = 'Correlation Matrix'
     go.xlabel = ''
     go.ylabel = ''
     go.width = 700
     go.height = 700
     if show: go.render()
     return go
+
+
+
+
+
+
+
+def plot_cruise_corr_map(
+                 cruise, targetTables, targetVars,
+                 depth1, depth2, 
+                 temporalTolerance, latTolerance, lonTolerance, depthTolerance, 
+                 method='spearman', exportDataFlag=False, show=True
+                 ):
+    """
+    Creates an annotated hestmap illustrating the degree of correlation between each pair of the variables colocalized with the cruise track.
+    Returns the generated heatmap objects.
+    """   
+
+    data = API().along_track(
+                            cruise, 
+                            targetTables, 
+                            targetVars, 
+                            depth1,
+                            depth2,
+                            temporalTolerance, 
+                            latTolerance, 
+                            lonTolerance, 
+                            depthTolerance
+                      )
+    if len(data) < 1:
+        print_tqdm('No matching results returned!', err=True)
+        return
+    data_org = data.copy()
+    # remove time and standard deviation columns
+    if 'time' in data.columns: data.drop('time', axis=1, inplace=True)
+    for col in data.columns:
+        if col[-4:] == '_std': data.drop(col, axis=1, inplace=True)   
+    corr = data.corr(method=method)
+    corr = corr.dropna(axis=0, how='all')   
+    corr = corr.dropna(axis=1, how='all')      
+
+    if exportDataFlag:
+        metadata = API().get_metadata(targetTables , targetVars)
+        fname_corr = make_filename_by_table_var(cruise, '', prefix='Annotated_Heatmap')
+        fname_matched = make_filename_by_table_var(cruise, '', prefix='matched')
+        Export(data_org, metadata, fname_matched).save()
+        Export(corr, metadata, fname_corr).save()
+
+    go = AnnotatedHeatmap().graph_obj()        
+    go.x = list(corr.columns)
+    go.y = list(corr.columns)
+    go.z = corr.values
+    go.cmap = 'coolwarm' 
+    go.vmin = -1
+    go.vmax = 1
+    go.variable = 'Along Track ' + cruise
+    # go.title = 'Correlation Matrix: ' + cruise
+    go.xlabel = ''
+    go.ylabel = ''
+    go.width = 700
+    go.height = 700
+    if show: go.render()
+    return go
+
+
+
+def plot_xy(
+            xTables, xVars, yTables, yVars, 
+            dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, 
+            temporalTolerances, latTolerances, lonTolerances, depthTolerances, 
+            method='spearman', exportDataFlag=False, show=True
+            ):
+    """
+    Plots one variable against the other.
+    Returns the generated graph objects.
+    """   
+
+    # TO DO: add input validation here
+
+    gos = []
+    for i in tqdm(range(len(xTables)), desc='overall'):
+        data = API().match(
+                        xTables[i], xVars[i], yTables[i], yVars[i], 
+                        dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, 
+                        temporalTolerances[i], latTolerances[i], lonTolerances[i], depthTolerances[i]
+                        )
+        if len(data) < 1:
+            print_tqdm('No matching results for %s and %s was returend.' % (xVars[i], yVars[i]) , err=True)
+            continue
+        print_tqdm('%s and %s retrieved .' % (xVars[i], yVars[i]), err=False)
+
+        if exportDataFlag:
+            metadata = API().get_metadata([xTables[i]] + [yTables[i]], [xVars[i]] + [yVars[i]])
+            fname = make_filename_by_table_var(xVars[i], yVars[i], prefix='XY')
+            Export(data, metadata, fname).save()
+
+        go = Trend(data, yVars[i]).graph_obj()
+        go.line = False
+        go.timeSeries = False
+        go.x = data[xVars[i]]  
+        go.xErr = data[xVars[i]+'_std']  
+        go.y = data[yVars[i]]  
+        go.yErr = data[yVars[i]+'_std']  
+
+        go.xlabel = xVars[i] + API().get_unit(xTables[i], xVars[i]) 
+        go.ylabel = yVars[i] + API().get_unit(yTables[i], yVars[i]) 
+        go.legend = xVars[i] + ' / ' + yVars[i]
+        if show: go.render()
+        gos.append(go)    
+    return gos
+
+
+
+def plot_cruise_track(cruise):
+    track = API().cruise_trajectory(cruise)
+    folium_cruise_track(track, cruise)
+    return

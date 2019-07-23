@@ -65,6 +65,13 @@ def addFullScreen(m):
 
 
 
+def addTrackMarkers(m, df, cruise):
+    mc = MarkerCluster(name=cruise, options={'spiderfyOnMaxZoom':'False', 'disableClusteringAtZoom' : '4'})
+    for i in range(len(df)):
+        folium.CircleMarker(location=[df.lat[i], df.lon[i]], radius=(2), color=colors['darkOrange'], fill=True).add_to(mc)
+    mc.add_to(m)
+    return m
+
 
 
 def folium_map(df, table, variable, unit):
@@ -87,6 +94,25 @@ def folium_map(df, table, variable, unit):
     if not os.path.exists(figureDir): os.makedirs(figureDir)
 
     fname = figureDir + 'heatMap.html'
+    if os.path.exists(fname):
+        os.remove(fname)
+    m.save(fname)
+    open_HTML(fname)
+    return
+
+
+def folium_cruise_track(df, cruise):
+    m = folium.Map([df.lat.mean(), df.lon.mean()], tiles=None, zoom_start=3, control_scale=True, prefer_canvas=True)
+    m.get_root().title = 'Cruise: ' + cruise
+    m = addLayers(m)
+    m = addTrackMarkers(m, df, cruise)
+    m = addMousePosition(m)
+    folium.LayerControl(collapsed=True).add_to(m)
+
+    figureDir = get_figure_dir()
+    if not os.path.exists(figureDir): os.makedirs(figureDir)
+
+    fname = figureDir + 'cruiseTrack.html'
     if os.path.exists(fname):
         os.remove(fname)
     m.save(fname)

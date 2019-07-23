@@ -130,9 +130,13 @@ class _REST(object):
             resp = requests.get(url, headers=headers)  
             if resp.text.lower().strip() == 'unauthorized':
                 halt('Unauthorized API key!')
-            if resp.text != '':
-                json_list = [orjson.loads(line) for line in resp.text.splitlines()]
-                df = pd.DataFrame(json_list, columns=list(json_list[0]))
+            try:
+                if resp.text != '':
+                    json_list = [orjson.loads(line) for line in resp.text.splitlines()]
+                    df = pd.DataFrame(json_list, columns=list(json_list[0]))
+            except:
+                print_tqdm('REST API Error (status code {})'.format(resp.status_code), err=True)
+                print_tqdm(resp.text, err=True)  
         except HTTPError as http_error:
             # look for resp.status_code
             raise
@@ -223,7 +227,17 @@ class _REST(object):
 
     def get_catalog(self):
         """Returns a dataframe containing full Simons CMAP catalog of variables."""
-        return self.query('SELECT * FROM dbo.udfCatalog()')
+        return self.query('EXEC uspCatalog')
+
+
+    def head(self, tableName):
+        """Returns top 5 records of a data set."""
+        return self.query('select TOP(5) * FROM %s' %tableName)
+
+
+    def columns(self, tableName):
+        """Returns the list of columns of a data set."""
+        return self.query("SELECT COLUMN_NAME [Columns] FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = N'%s'" % tableName)
 
 
     def get_var(self, tableName, varName):
@@ -295,6 +309,43 @@ class _REST(object):
             else:    
                 metadata = pd.concat([metadata, df], axis=0, sort=False)
         return metadata 
+
+
+    def cruises(self):
+        """
+        Returns a dataframe containing a list of all of the hosted cruise names.
+        """
+        return self.query('EXEC uspCruises')
+
+
+    def cruise_by_name(self, cruise_name):
+        """
+        Returns a dataframe containing cruise info using cruise name.
+        """
+        df = self.query("EXEC uspCruiseByName '%s' " % cruise_name)
+        if len(df) < 1:
+            halt('Invalid cruise name: %s' % cruise_name)
+        if len(df) > 1:
+            df.drop('Keywords', axis=1, inplace=True)
+            print(df)
+            halt('More than one cruise found. Please provide a more specific cruise name: ')
+        return df
+
+
+    def cruise_bounds(self, cruise_name):
+        """
+        Returns a dataframe containing cruise boundaries in space and time.
+        """
+        df = self.cruise_by_name(cruise_name)
+        return self.query('EXEC uspCruiseBounds %d ' % df.iloc[0]['ID'])
+
+
+    def cruise_trajectory(self, cruise_name):
+        """
+        Returns a dataframe containing the cruise trajectory.
+        """
+        df = self.cruise_by_name(cruise_name)
+        return self.query('EXEC uspCruiseTrajectory %d ' % df.iloc[0]['ID'])
 
 
     def subset(self, spName, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2):     
@@ -374,5 +425,30 @@ class _REST(object):
                      dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2,
                      temporalTolerance, latTolerance, lonTolerance, depthTolerance).compile()
 
+
+
+    def along_track(self, cruise, tables, variables, depth1, depth2, temporalTolerance, latTolerance, lonTolerance, depthTolerance):     
+        """
+        Takes a cruise name and colocalizes the cruise track with the specified variable(s).
+        """
+        df = self.cruise_bounds(cruise)
+        return self.match(
+                         sourceTable='tblCruise_Trajectory',
+                         sourceVar=str(df.iloc[0]['ID']),
+                         targetTables=tables,
+                         targetVars=variables,
+                         dt1=df.iloc[0]['dt1'].split('T')[0],
+                         dt2=df.iloc[0]['dt2'].split('T')[0],
+                         lat1=df.iloc[0]['lat1'],
+                         lat2=df.iloc[0]['lat2'],
+                         lon1=df.iloc[0]['lon1'],
+                         lon2=df.iloc[0]['lon2'],
+                         depth1=depth1,
+                         depth2=depth2,
+                         temporalTolerance=temporalTolerance,
+                         latTolerance=latTolerance,
+                         lonTolerance=lonTolerance,
+                         depthTolerance=depthTolerance
+                         )
 
 

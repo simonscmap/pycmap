@@ -17,6 +17,7 @@ import IPython
 
 
 def halt(msg):
+        """Prints an error message and terminates the program."""
         msg = '\n' + msg
         init(convert=True)
         print(Fore.RED + msg, file=sys.stderr)    
@@ -127,6 +128,9 @@ def save_config(token=None, vizEngine=None, exportDir=None, exportFormat=None, f
         if token is not None:
                 df['token'] = token
         if vizEngine is not None:
+                supportedVizEngines = ['bokeh', 'plotly']
+                if vizEngine not in supportedVizEngines:
+                        halt('%s is not a supported visualization library' % vizEngine)
                 df['vizEngine'] = vizEngine
         if exportDir is not None:
                 df['exportDir'] = exportDir

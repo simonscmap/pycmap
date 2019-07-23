@@ -24,6 +24,7 @@ class AnnotatedHeatmap(BaseGraph):
     def __init__(self):
         super().__init__()
 
+
     def render(self):
         """Display the graph object."""
         super().render()

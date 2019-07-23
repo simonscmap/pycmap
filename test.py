@@ -26,11 +26,32 @@ cmap = pycmap.API('c7f10130-78f2-11e9-82a6-793e7fd02bc0', vizEngine='plotly')
 
 
 # df = cmap.get_catalog()
+# print(df)
+
 
 # df = cmap.has_field('tblPisces_NRT', 'O2')
 # print(df)
 
 
+# df = cmap.head('tblAMT13_Chisholm')
+# print(df)
+
+
+# df = cmap.columns('tblAMT13_Chisholm')
+# print(df)
+
+
+# df = cmap.cruises()
+# print(df)
+
+
+
+# df = cmap.cruise_bounds('scope_6')
+# print(df)
+
+
+# df = cmap.cruise_trajectory('scope_6')
+# print(df)
 
 
 # df = cmap.space_time('tblsst_AVHRR_OI_NRT', 'sst', '2016-04-30', '2016-04-30', 10, 70, -180, -80, 0, 0.5)
@@ -64,6 +85,19 @@ cmap = pycmap.API('c7f10130-78f2-11e9-82a6-793e7fd02bc0', vizEngine='plotly')
 
 # matched.to_csv('matched.csv', index=False)
 
+
+
+
+# along = cmap.along_track(
+#                         cruise='KOK1606', 
+#                         tables=['tblSeaFlow', 'tblSSS_NRT', 'tblCHL_REP'], 
+#                         variables=['synecho_abundance', 'sss', 'chl'], 
+#                         temporalTolerance=[1, 1, 4], 
+#                         latTolerance=[0.1, 0.25, 0.25], 
+#                         lonTolerance=[0.1, 0.25, 0.25], 
+#                         depthTolerance=5
+#                         )
+# along.to_csv('along.csv')
 
 
 
@@ -111,8 +145,8 @@ cmap = pycmap.API('c7f10130-78f2-11e9-82a6-793e7fd02bc0', vizEngine='plotly')
 # table = ['tblPisces_NRT', 'tblAltimetry_REP', 'tblsst_AVHRR_OI_NRT', 'tblSSS_NRT']
 # variable = ['NO3', 'adt', 'sst', 'sss']
 
-# table = ['tblPisces_NRT']
-# variable = ['NO3']
+# # table = ['tblPisces_NRT']
+# # variable = ['NO3']
 
 
 # exportDataFlag = False
@@ -193,6 +227,54 @@ cmap = pycmap.API('c7f10130-78f2-11e9-82a6-793e7fd02bc0', vizEngine='plotly')
 
 
 
+
+
+
+
+
+# ########## plot XY
+
+# from pycmap.viz import plot_xy
+# go = plot_xy(
+#             xTables=['tblsst_AVHRR_OI_NRT', 'tblPisces_NRT'], 
+#             xVars=['sst', 'NO3'],
+#             yTables=['tblAltimetry_REP', 'tblsst_AVHRR_OI_NRT'], 
+#             yVars=['adt', 'sst'], 
+#             dt1='2016-04-20', 
+#             dt2='2016-07-20', 
+#             lat1=30, 
+#             lat2=32, 
+#             lon1=-160, 
+#             lon2=-158, 
+#             depth1=0, 
+#             depth2=5, 
+#             temporalTolerances=[ 1, 1],
+#             latTolerances=[0.125, 0.125],
+#             lonTolerances=[0.125, 0.125],
+#             depthTolerances=[5, 5],
+#             method='spearman', 
+#             exportDataFlag=False, 
+#             show=True
+#             )
+
+# go[0].xlabel = 'salam'
+# go[0].title='new title'
+# go[0].width = 300
+# go[0].height = 300
+# go[0].msize=10
+# go[0].fillAlpha=0.7
+# go[0].render()
+
+
+
+
+
+# ########## cruise track
+# from pycmap.viz import plot_cruise_track
+# plot_cruise_track('SCOPE_6')
+
+
+
 # st = cmap.subset('uspSpaceTime', 'tblAltimetry_REP', 'adt', '2016-04-30', '2016-07-30', 30, 32, -160, -158, 0, 10)
 
 
@@ -209,7 +291,7 @@ cmap = pycmap.API('c7f10130-78f2-11e9-82a6-793e7fd02bc0', vizEngine='plotly')
 #### corr plot
 # from pycmap.viz import plot_corr_map
 
-# grad1
+# # grad1
 # go = plot_corr_map(
 #                 'tblSeaFlow', 
 #                 # 'synecho_abundance', 
@@ -232,13 +314,15 @@ cmap = pycmap.API('c7f10130-78f2-11e9-82a6-793e7fd02bc0', vizEngine='plotly')
 #                 method='spearman', exportDataFlag=True, show=True
 #                 )
                 
-# flombaum
+# # flombaum
 # go = plot_corr_map(
 #                 'tblFlombaum', 
 #                 # 'prochlorococcus_abundance_flombaum',
 #                 'synechococcus_abundance_flombaum',
-#                 ['tblCHL_REP', 'tblSST_AVHRR_OI_NRT', 'tblAltimetry_REP', 'tblDarwin_Nutrient_3day', 'tblDarwin_Nutrient_3day'], 
-#                 ['chl', 'sst', 'sla', 'FeT_darwin_3day', 'PO4_darwin_3day'], 
+#                 # ['tblCHL_REP', 'tblSST_AVHRR_OI_NRT', 'tblAltimetry_REP', 'tblDarwin_Nutrient_3day', 'tblDarwin_Nutrient_3day'], 
+#                 # ['chl', 'sst', 'sla', 'FeT_darwin_3day', 'PO4_darwin_3day'], 
+#                 ['tblDarwin_Nutrient_3day'], 
+#                 ['FeT_darwin_3day'], 
 #                 '2007-01-01', 
 #                 '2008-11-10', 
 #                 -90, 
@@ -261,3 +345,8 @@ cmap = pycmap.API('c7f10130-78f2-11e9-82a6-793e7fd02bc0', vizEngine='plotly')
 # go.width = 300
 # go.height = 300
 # go.render()
+
+
+
+
+

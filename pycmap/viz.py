@@ -3,7 +3,7 @@ Author: Mohammad Dehghani Ashkezari <mdehghan@uw.edu>
 
 Date: 2019-06-28
 
-Function: Implements the top-level visualization logics.
+Function: Implements the top-level visualization logic.
 """
 
 from .cmap import API  # noqa

@@ -1,7 +1,7 @@
 import pycmap
 
 cmap = pycmap.API('4f101ed0-1f13-41a5-ab7d-2c11a405a326')
-cmap = pycmap.API('c7f10130-78f2-11e9-82a6-793e7fd02bc0', vizEngine='plotly')
+cmap = pycmap.API('08d91d80-ae64-11e9-8f77-f3e8f5c1f730', vizEngine='plotly')
 
 
 
@@ -350,3 +350,53 @@ cmap = pycmap.API('c7f10130-78f2-11e9-82a6-793e7fd02bc0', vizEngine='plotly')
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+########## ExtraTrees
+
+from pycmap.supervised import ExtraTrees
+from pycmap.clean import Clean
+
+
+
+
+# df = cmap.along_track(
+#                      cruise='KOK1606', 
+#                      tables=['tblSeaFlow', 'tblSST_AVHRR_OI_NRT', 'tblSSS_NRT'], 
+#                      variables=['synecho_abundance', 'sst', 'sss'], 
+#                      depth1=0,
+#                      depth2=5,
+#                      temporalTolerance=[0, 1, 1],
+#                      latTolerance=[0, 0.125, 0.125], 
+#                      lonTolerance=[0, 0.125, 0.125], 
+#                      depthTolerance=5
+#                      )
+
+
+df = cmap.along_track(
+                     cruise='KOK1606', 
+                     tables=['tblSeaFlow'], 
+                     variables=['synecho_abundance'], 
+                     depth1=0,
+                     depth2=5,
+                     temporalTolerance=[0],
+                     latTolerance=[0], 
+                     lonTolerance=[0], 
+                     depthTolerance=5
+                     )
+
+
+df = Clean(df).remove_nan_time_std()
+
+model = ExtraTrees(df, 'synecho_abundance')
+model.learn()
+model.report()

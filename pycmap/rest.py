@@ -127,7 +127,7 @@ class _REST(object):
             if payload is not None:
                 url_safe_query = urlencode(payload)
             url = self._baseURL + route + url_safe_query
-            resp = requests.get(url, headers=headers)  
+            resp = requests.get(url, headers=headers, timeout=3600)  
             if resp.text.lower().strip() == 'unauthorized':
                 halt('Unauthorized API key!')
             try:

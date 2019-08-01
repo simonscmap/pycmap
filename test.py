@@ -363,7 +363,7 @@ cmap = pycmap.API('08d91d80-ae64-11e9-8f77-f3e8f5c1f730', vizEngine='plotly')
 
 ########## ExtraTrees
 
-from pycmap.supervised import ExtraTrees
+from pycmap.supervised import ExtraTrees, RandomForest
 from pycmap.clean import Clean
 
 
@@ -397,6 +397,8 @@ df = cmap.along_track(
 
 df = Clean(df).remove_nan_time_std()
 
-model = ExtraTrees(df, 'synecho_abundance')
+model = RandomForest(df, 'synecho_abundance')
 model.learn()
+model.plot_feature_importance()
 model.report()
+

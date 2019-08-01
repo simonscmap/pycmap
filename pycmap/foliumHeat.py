@@ -105,10 +105,10 @@ def folium_cruise_track(df, cruise):
     m = folium.Map([df.lat.mean(), df.lon.mean()], tiles=None, zoom_start=3, control_scale=True, prefer_canvas=True)
     m.get_root().title = 'Cruise: ' + cruise
     m = addLayers(m)
-    m = addTrackMarkers(m, df, cruise)
+    for i in range(len(df)):
+        folium.CircleMarker(location=[df.lat[i], df.lon[i]], radius=(2), color=colors['darkOrange'], fill=True).add_to(m)
     m = addMousePosition(m)
     folium.LayerControl(collapsed=True).add_to(m)
-
     figureDir = get_figure_dir()
     if not os.path.exists(figureDir): os.makedirs(figureDir)
 

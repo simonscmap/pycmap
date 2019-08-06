@@ -69,7 +69,7 @@ class BaseGraph(object):
         self.__vmax = None
         self.__cmap = ''
         self.__plotlyConfig = {
-            'showLink': True, 
+            'showLink': False, 
             'editable':False, 
             'staticPlot': False
             }

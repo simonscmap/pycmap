@@ -17,6 +17,8 @@ from .common import (
 import warnings
 import numpy as np
 import pandas as pd
+import datetime
+from dateutil.parser import parse
 from tqdm import tqdm 
 if inline(): from tqdm import tqdm_notebook as tqdm
 
@@ -112,6 +114,9 @@ class Match(object):
 
 
     def validateInit(self):
+        def is_number(val):
+            return isinstance(self.lat2, float) or isinstance(self.lat2, int) or isinstance(self.lat2, np.int64)
+
         msg = ''
         if not isinstance(self.spname, str): msg += 'spname (stored procedure name) should be string literal. \n'
         if not isinstance(self.sourceTable, str): msg += 'source table name should be string literal. \n'
@@ -121,12 +126,20 @@ class Match(object):
         if len(self.targetTables) != len(self.targetVariables): msg += 'targetTables list should have the same length as targetVariables list.'            
         if not isinstance(self.dt1, str): msg += 'dt1 (start date) should be string literal. \n'
         if not isinstance(self.dt2, str): msg += 'dt2 (end date) should be string literal. \n'
-        if not isinstance(self.lat1, float) and not isinstance(self.lat1, int): msg += 'lat1 (start latitude) should be float or integer. \n'
-        if not isinstance(self.lat2, float) and not isinstance(self.lat2, int): msg += 'lat2 (end latitude) should be float or integer. \n'
-        if not isinstance(self.lon1, float) and not isinstance(self.lon1, int): msg += 'lon1 (start longitude) should be float or integer. \n'
-        if not isinstance(self.lon2, float) and not isinstance(self.lon2, int): msg += 'lon2 (end longitude) should be float or integer. \n'
-        if not isinstance(self.depth1, float) and not isinstance(self.depth1, int): msg += 'depth1 (start depth) should be float or integer. \n'
-        if not isinstance(self.depth2, float) and not isinstance(self.depth2, int): msg += 'depth2 (end depth) should be float or integer. \n'
+
+        if not is_number(self.lat1): msg += 'lat1 (start latitude) should be float or integer. \n'
+        if not is_number(self.lat2): msg += 'lat2 (end latitude) should be float or integer. \n'
+        if not is_number(self.lon1): msg += 'lon1 (start longitude) should be float or integer. \n'
+        if not is_number(self.lon2): msg += 'lon2 (end longitude) should be float or integer. \n'
+        if not is_number(self.depth1): msg += 'depth1 (start depth) should be float or integer. \n'
+        if not is_number(self.depth2): msg += 'depth2 (end depth) should be float or integer. \n'
+
+        # if not isinstance(self.lat1, float) and not isinstance(self.lat1, int): msg += 'lat1 (start latitude) should be float or integer. \n'
+        # if not isinstance(self.lat2, float) and not isinstance(self.lat2, int) and not isinstance(self.lat2, np.int64): msg += 'lat2 (end latitude) should be float or integer. \n'
+        # if not isinstance(self.lon1, float) and not isinstance(self.lon1, int): msg += 'lon1 (start longitude) should be float or integer. \n'
+        # if not isinstance(self.lon2, float) and not isinstance(self.lon2, int) and not isinstance(self.lon2, np.int64): msg += 'lon2 (end longitude) should be float or integer. \n'
+        # if not isinstance(self.depth1, float) and not isinstance(self.depth1, int): msg += 'depth1 (start depth) should be float or integer. \n'
+        # if not isinstance(self.depth2, float) and not isinstance(self.depth2, int): msg += 'depth2 (end depth) should be float or integer. \n'
         if not isinstance(self.timeTolerance, list): msg += 'timeTolerance should be a list of floats or integers. \n'
         if not isinstance(self.latTolerance, list): msg += 'latTolerance should be a list of floats or integers. \n'
         if not isinstance(self.lonTolerance, list): msg += 'lonTolerance should be a list of floats or integers. \n'
@@ -188,6 +201,14 @@ class Match(object):
         Loops through the target data sets and match them with the source data set according to the the accosiated tolerance parameters.
         Returns a compiled dataframe of the source and matched target data sets.
         """
+        def shift_dt(dt, delta):
+            delta = float(delta)
+            dt = parse(dt)
+            dt += datetime.timedelta(days=delta)
+            # TODO: Handel monthly climatology data sets
+            return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
         df = pd.DataFrame({})
         for i in tqdm(range(len(self.targetTables)), desc='overall'):
             data = self._atomic_match(
@@ -196,8 +217,8 @@ class Match(object):
                                      self.sourceVariable, 
                                      self.targetTables[i], 
                                      self.targetVariables[i], 
-                                     self.dt1, # potentially, temperalTolerance can be subtracted
-                                     self.dt2, # potentially, temperalTolerance can be added
+                                     shift_dt(self.dt1, -self.timeTolerance[i]),
+                                     shift_dt(self.dt2, self.timeTolerance[i]),
                                      self.lat1 - self.latTolerance[i], 
                                      self.lat2 + self.latTolerance[i], 
                                      self.lon1 - self.latTolerance[i], 

@@ -38,7 +38,7 @@ class Clean(object):
 
         Returns the processed dataframe.
         """
-        self.dropTime()
+        self.bearkTime()
         self.dropSTD()
         self.remove_all_nans()
         self.remove_any_nans()
@@ -56,9 +56,16 @@ class Clean(object):
         self.data.dropna(axis=1, how='all', inplace=True)  
 
 
-    def dropTime(self):
-        """Removes 'time' column, if exists."""
-        if 'time' in self.data.columns: self.data.drop('time', axis=1, inplace=True)    
+    def bearkTime(self):
+        """
+        Breaks the 'time' column into separate columns (year, month) and removes the time column itself.
+        """
+        if 'time' in self.data.columns: 
+            self.data['time'] = pd.to_datetime(self.data['time']) 
+            self.data['year'] = self.data['time'].dt.year 
+            self.data['month'] = self.data['time'].dt.month 
+            # self.data['dayOfYear'] = self.data['time'].dt.dayofyear 
+            self.data.drop('time', axis=1, inplace=True)    
 
 
     def dropSTD(self):

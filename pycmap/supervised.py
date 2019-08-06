@@ -16,7 +16,7 @@ from sklearn.ensemble import ExtraTreesRegressor, GradientBoostingRegressor
 from sklearn.ensemble.forest import RandomForestRegressor
 from sklearn.metrics import mean_squared_error
 
-
+import sklearn.preprocessing as preproc
 
 
 class Supervised(object):
@@ -25,6 +25,8 @@ class Supervised(object):
 
     :param dataframe data: dataframe containing the training and test data sets.
     :param str target: target variable name (response function).
+    :param bool standard: if true, feature data set is standardized.
+    :param bool feature_interaction: if true, feature-pair interaction terms are added to the feature matrix.
     :param int cv: the number of folds in cross-validation.
     :param str test_size: the proportion of the data set to include in the test split (a float value between 0 to 1).
     """
@@ -33,19 +35,27 @@ class Supervised(object):
                 self, 
                 data, 
                 target,
+                standard,
+                feature_interaction,
                 cv,
                 test_size,
                 ):
         self.data = data
         self.target = target
+        self.standard = standard
+        self.feature_interaction = feature_interaction
         self.cv = cv
         self.test_size = test_size
         self.validateInit()
-
         self.__features = list(self.data.columns)
         self.__features.remove(self.target)
         self.__y = np.array(self.data[self.target])
         self.__X = np.array(self.data[self.__features])
+        if self.standard:
+            self.__X = preproc.StandardScaler().fit_transform(self.__X)
+        if self.feature_interaction:
+            if not self.standard: print('Consider standardizing the feature matrix (standard=True).')
+            self.__X = preproc.PolynomialFeatures(include_bias=False).fit_transform(self.__X)    
         self.__XTrain, self.__XTest, self.__yTrain, self.__yTest = train_test_split(
                                                                                     self.__X , 
                                                                                     self.__y, 
@@ -187,6 +197,8 @@ class EnsembleTree(Supervised):
                 self,
                 data,
                 target,
+                standard,
+                feature_interaction,
                 cv,
                 test_size,
                 random_state,
@@ -196,7 +208,7 @@ class EnsembleTree(Supervised):
                 min_samples_split,
                 n_jobs
                 ):
-        super().__init__(data, target, cv, test_size)  
+        super().__init__(data, target, standard, feature_interaction, cv, test_size)  
         self.random_state = random_state
         self.n_estimators = n_estimators   
         self.max_features = max_features
@@ -277,6 +289,8 @@ class RandomForest(EnsembleTree):
                 self,
                 data,
                 target,
+                standard=False,
+                feature_interaction=False,
                 cv=10,
                 test_size=0.2,
                 random_state=0,
@@ -289,6 +303,8 @@ class RandomForest(EnsembleTree):
         super().__init__(
                         data, 
                         target, 
+                        standard,
+                        feature_interaction,
                         cv,
                         test_size, 
                         random_state, 
@@ -319,6 +335,8 @@ class ExtraTrees(EnsembleTree):
                 self,
                 data,
                 target,
+                standard=False,
+                feature_interaction=False,
                 cv=10,
                 test_size=0.2,
                 random_state=0,
@@ -330,7 +348,9 @@ class ExtraTrees(EnsembleTree):
                 ):
         super().__init__(
                         data, 
-                        target, 
+                        target,
+                        standard,
+                        feature_interaction, 
                         cv,
                         test_size, 
                         random_state, 
@@ -355,100 +375,7 @@ class ExtraTrees(EnsembleTree):
 
 
 
-         
-
-
-
-
-# class RandomForest(Supervised):
-#     """
-#     Instantiates the RandomForestRegressor class from sklearn library.
-#     More details here: https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.RandomForestRegressor.html
-
-
-#     :param int random_state: random state seed.
-#     :param int n_estimators : the number of trees in the forest.
-#     :param int/flots/str max_features : the number of features to consider when looking for the best split: 
-
-#         If int, then consider max_features features at each split.
-#         If float, then max_features is a fraction and int(max_features * n_features) features are considered at each split.
-#         If “auto”, then max_features=n_features (default).
-#         If “sqrt”, then max_features=sqrt(n_features).
-#         If “log2”, then max_features=log2(n_features).
-#         If None, then max_features=n_features.
-
-#     :param int max_depth : the maximum depth of the tree (default=None). If None, then nodes are expanded until all leaves are pure or until all leaves contain less than min_samples_split samples.
-#     :param int/float min_samples_split : the minimum number of samples required to split an internal node:
-  
-#         If int, then consider min_samples_split as the minimum number (default=2).
-#         If float, then min_samples_split is a fraction and ceil(min_samples_split * n_samples) are the minimum number of samples for each split.
-
-#     :param int n_jobs : the number of jobs to run in parallel.
-#     """
-#     def __init__(
-#                 self,
-#                 data,
-#                 target,
-#                 test_size=0.2,
-#                 random_state=0,
-#                 n_estimators=200,
-#                 max_features='auto',
-#                 max_depth=None, 
-#                 min_samples_split=2,
-#                 n_jobs=-1
-#                 ):
-#         super().__init__(data, target, test_size)  
-#         self.random_state = random_state
-#         self.n_estimators = n_estimators   
-#         self.max_features = max_features
-#         self.max_depth = max_depth
-#         self.min_samples_split = min_samples_split
-#         self.n_jobs = n_jobs    
-
-
-#         self.model = RandomForestRegressor(
-#                                            random_state=self.random_state, 
-#                                            n_estimators=self.n_estimators, 
-#                                            max_features=self.max_features,
-#                                            max_depth=self.max_depth,
-#                                            min_samples_split=self.min_samples_split,
-#                                            n_jobs=self.n_jobs
-#                                            )  
-
-
-         
-
-# class ExtraTrees(Supervised):
-#     """
-#     Instantiates the ExtraTreesRegressor class from sklearn library.
-#     More details here: https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.ExtraTreesRegressor.html 
-
-
-#     :param int random_state: random state seed.
-#     :param int n_estimators : the number of trees in the forest.
-#     :param int n_jobs : the number of jobs to run in parallel.
-#     """
-#     def __init__(
-#                 self,
-#                 data,
-#                 target,
-#                 test_size=0.2,
-#                 random_state=0,
-#                 n_estimators=200,
-#                 n_jobs=-1
-#                 ):
-#         super().__init__(data, target, test_size)  
-#         self.random_state = random_state
-#         self.n_estimators = n_estimators   
-#         self.n_jobs = n_jobs    
-
-
-#         self.model = ExtraTreesRegressor(
-#                                         random_state=self.random_state, 
-#                                         n_estimators=self.n_estimators, 
-#                                         n_jobs=self.n_jobs
-#                                         )  
-
+        
 
 
 class GradientBoost(Supervised):

@@ -1,7 +1,7 @@
 import pycmap
 
 cmap = pycmap.API('4f101ed0-1f13-41a5-ab7d-2c11a405a326')
-cmap = pycmap.API('08d91d80-ae64-11e9-8f77-f3e8f5c1f730', vizEngine='plotly')
+cmap = pycmap.API('19e91d80-ae64-11e9-8f77-f3e8f5c1f730', vizEngine='plotly')
 
 
 
@@ -363,42 +363,75 @@ cmap = pycmap.API('08d91d80-ae64-11e9-8f77-f3e8f5c1f730', vizEngine='plotly')
 
 ########## ExtraTrees
 
-from pycmap.supervised import ExtraTrees, RandomForest
-from pycmap.clean import Clean
+# from pycmap.supervised import ExtraTrees, RandomForest
+# from pycmap.clean import Clean
 
 
+
+
+# # df = cmap.along_track(
+# #                      cruise='KOK1606', 
+# #                      tables=['tblSeaFlow', 'tblSST_AVHRR_OI_NRT', 'tblSSS_NRT'], 
+# #                      variables=['synecho_abundance', 'sst', 'sss'], 
+# #                      depth1=0,
+# #                      depth2=5,
+# #                      temporalTolerance=[0, 1, 1],
+# #                      latTolerance=[0, 0.125, 0.125], 
+# #                      lonTolerance=[0, 0.125, 0.125], 
+# #                      depthTolerance=5
+# #                      )
 
 
 # df = cmap.along_track(
 #                      cruise='KOK1606', 
-#                      tables=['tblSeaFlow', 'tblSST_AVHRR_OI_NRT', 'tblSSS_NRT'], 
-#                      variables=['synecho_abundance', 'sst', 'sss'], 
+#                      tables=['tblSeaFlow'], 
+#                      variables=['synecho_abundance'], 
 #                      depth1=0,
 #                      depth2=5,
-#                      temporalTolerance=[0, 1, 1],
-#                      latTolerance=[0, 0.125, 0.125], 
-#                      lonTolerance=[0, 0.125, 0.125], 
+#                      temporalTolerance=[0],
+#                      latTolerance=[0], 
+#                      lonTolerance=[0], 
 #                      depthTolerance=5
 #                      )
 
 
-df = cmap.along_track(
-                     cruise='KOK1606', 
-                     tables=['tblSeaFlow'], 
-                     variables=['synecho_abundance'], 
-                     depth1=0,
-                     depth2=5,
-                     temporalTolerance=[0],
-                     latTolerance=[0], 
-                     lonTolerance=[0], 
-                     depthTolerance=5
-                     )
+# df = Clean(df).remove_nan_time_std()
+
+# model = RandomForest(df, 'synecho_abundance')
+# model.learn()
+# model.plot_feature_importance()
+# model.report()
 
 
-df = Clean(df).remove_nan_time_std()
 
-model = RandomForest(df, 'synecho_abundance')
-model.learn()
-model.plot_feature_importance()
-model.report()
 
+
+from pycmap.annotatedHeatmap import AnnotatedHeatmap
+from pycmap.clean import Clean
+import pandas as pd
+
+def plot_corr_matrix(df, cruise):
+    corr = df.corr(method='spearman')
+    go = AnnotatedHeatmap().graph_obj()        
+    go.x = list(corr.columns)
+    go.y = list(corr.columns)
+    go.z = corr.values
+    go.cmap = 'coolwarm' 
+    go.vmin = -1
+    go.vmax = 1
+    go.variable = 'SeaFlow'
+    go.xlabel = ''
+    go.ylabel = ''
+    go.title = cruise
+    go.width = 1500
+    go.height = 1500
+    go.render()
+    
+    
+cruises = ['Gradients_1', 'Gradients_2', 'KM1712', 'KM1713', 'meso_scope', 'diel']
+for cruise in cruises:
+    df = pd.read_csv('export/%s.csv' % cruise)
+    df = Clean(df).remove_nan_time_std()
+    df.drop('year', axis=1, inplace=True) 
+    df.drop('month', axis=1, inplace=True) 
+    plot_corr_matrix(df, cruise)

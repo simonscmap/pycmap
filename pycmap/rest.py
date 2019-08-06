@@ -127,7 +127,7 @@ class _REST(object):
             if payload is not None:
                 url_safe_query = urlencode(payload)
             url = self._baseURL + route + url_safe_query
-            resp = requests.get(url, headers=headers, timeout=3600)  
+            resp = requests.get(url, headers=headers)  
             if resp.text.lower().strip() == 'unauthorized':
                 halt('Unauthorized API key!')
             try:
@@ -437,8 +437,10 @@ class _REST(object):
                          sourceVar=str(df.iloc[0]['ID']),
                          targetTables=tables,
                          targetVars=variables,
-                         dt1=df.iloc[0]['dt1'].split('T')[0],
-                         dt2=df.iloc[0]['dt2'].split('T')[0],
+                        #  dt1=df.iloc[0]['dt1'].split('T')[0],
+                        #  dt2=df.iloc[0]['dt2'].split('T')[0],
+                         dt1=df.iloc[0]['dt1'],
+                         dt2=df.iloc[0]['dt2'],
                          lat1=df.iloc[0]['lat1'],
                          lat2=df.iloc[0]['lat2'],
                          lon1=df.iloc[0]['lon1'],

@@ -1,6 +1,6 @@
 [![PyPI version](https://badge.fury.io/py/pycmap.svg)](https://badge.fury.io/py/pycmap)
 
-![Book Cover](figures/CMAP.png)
+![Book Cover](docs/figures/CMAP.png)
 *Mohammad Dehghani Ashkezari <mdehghan@uw.edu>*, 
 
 *Raphael Hagen*,

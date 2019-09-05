@@ -268,7 +268,7 @@ class MapPlotly(Map):
                                     connectgaps=False,
                                     contours=dict(
                                         coloring='heatmap',
-                                        # showlabels=True,
+                                        showlabels=True,
                                         start=self.vmin,
                                         end=self.vmax,
                                         size=(self.vmax-self.vmin) / float(self.levels)

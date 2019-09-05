@@ -135,6 +135,13 @@ class TrendBokeh(Trend):
                     plot_height=self.height,
                     title=self.title
                     )
+
+        if self.timeSeries and (isinstance(self.x[0], str) or isinstance(self.x[0], int) or isinstance(self.x[0], np.int64)):
+            self.x = self.x.astype(str)    
+            p.xaxis.ticker = np.arange(len(self.x))
+            p.xaxis.major_label_overrides =  self.x.to_dict()
+            self.x = np.arange(len(self.x))
+
         p.yaxis.axis_label = self.ylabel
         p.xaxis.axis_label = self.xlabel        
         cr = p.circle(
@@ -158,18 +165,19 @@ class TrendBokeh(Trend):
                 legend=self.legend
                 )
 
-        p.add_tools(HoverTool(tooltips=None, renderers=[cr], mode='hline'))
 
         if self.timeSeries:
-            p.xaxis.formatter=DatetimeTickFormatter(
-                                                    hours=["%d %B %Y"],
-                                                    days=["%d %B %Y"],
-                                                    months=["%d %B %Y"],
-                                                    years=["%d %B %Y"],
-                                                    )
+            if not isinstance(self.x[0], str):
+                p.xaxis.formatter=DatetimeTickFormatter(
+                                                        hours=["%d %B %Y"],
+                                                        days=["%d %B %Y"],
+                                                        months=["%d %B %Y"],
+                                                        years=["%d %B %Y"],
+                                                        )
             p.xaxis.major_label_orientation = pi/4
 
 
+        p.add_tools(HoverTool(tooltips=None, renderers=[cr], mode='hline'))
         if not inline(): output_file(get_figure_dir() + self.variable + ".html", title=self.variable)        
         show(p)
 

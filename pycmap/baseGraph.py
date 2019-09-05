@@ -81,7 +81,7 @@ class BaseGraph(object):
         """Parent render function; will be extended by derived classes."""
         if inline():
             if get_vizEngine().lower().strip() == 'bokeh': output_notebook()
-            if get_vizEngine().lower().strip() == 'plotly': plotly.offline.init_notebook_mode(connected=True)
+            if get_vizEngine().lower().strip() == 'plotly': plotly.offline.init_notebook_mode(connected=False)
         else:    
             figureDir = get_figure_dir()
             if not os.path.exists(figureDir): os.makedirs(figureDir)
@@ -95,6 +95,21 @@ class BaseGraph(object):
         return res, msg
 
 
+    @staticmethod
+    def enable_plotly_in_cell():
+        """
+        Enables plotly on colab cells. 
+        Presumably, this is not necessay at plotly 4+ (calling fig.show() will be enough).
+        Currently, plotly version 3+ is installed on colab.
+        """
+        import IPython
+        from plotly.offline import init_notebook_mode
+        display(IPython.core.display.HTML('''
+                <script src="/static/components/requirejs/require.js"></script>
+        '''))
+        init_notebook_mode(connected=False)
+  
+
     def _save_plotly_(self, go, data, layout):
         """
         Saves a plotly figure on local disk.
@@ -102,7 +117,8 @@ class BaseGraph(object):
         """
         fig = go.Figure(data=data, layout=layout)
         if not self.__plotlyConfig.get('staticPlot'):
-            if inline():                
+            if inline(): 
+                self.enable_plotly_in_cell()              
                 plotly.offline.iplot(fig, config=self.plotlyConfig)    
             else:
                 plotly.offline.plot(fig, config=self.plotlyConfig, filename=get_figure_dir() + self.variable + '.html')

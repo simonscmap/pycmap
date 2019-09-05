@@ -41,6 +41,7 @@ setup(
         'matplotlib', 
         'cmocean',
         'tqdm', 
+        'orjson',
         'folium', 
         'colorama',
         'plotly'

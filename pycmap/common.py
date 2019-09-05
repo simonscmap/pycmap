@@ -104,7 +104,7 @@ def config_path():
 
 def initiate_config_file(token, vizEngine, exportDir, exportFormat, figureDir):
         """Creates a .csv file hosting the primary project configs """
-        if vizEngine is None: vizEngine = 'bokeh'
+        if vizEngine is None: vizEngine = 'plotly'
         if exportDir is None: exportDir = './export/'
         if exportFormat is None: exportFormat = '.csv'
         if figureDir is None: figureDir = './figure/'

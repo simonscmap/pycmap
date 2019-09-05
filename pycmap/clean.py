@@ -38,7 +38,7 @@ class Clean(object):
 
         Returns the processed dataframe.
         """
-        self.bearkTime()
+        self.breakTime()
         self.dropSTD()
         self.remove_all_nans()
         self.remove_any_nans()
@@ -56,7 +56,7 @@ class Clean(object):
         self.data.dropna(axis=1, how='all', inplace=True)  
 
 
-    def bearkTime(self):
+    def breakTime(self):
         """
         Breaks the 'time' column into separate columns (year, month) and removes the time column itself.
         """

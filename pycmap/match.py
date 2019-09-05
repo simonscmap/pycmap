@@ -70,10 +70,10 @@ class Match(object):
         :param float lon2: end longitude [degree E].
         :param float depth1: start depth [m].
         :param float depth2: end depth [m].
-        :param list timeTolerance: float list of temporal matching tolerance values between pairs of source and target data sets (in the order is targetTables). If only one value is given, that would be applied to all taret data sets. timeTolerance is in day units excpet when the target variable represents monthly climatology data in which case it is in month units. 
-        :param list latTolerance: float list of spatial tolerance values in meridional direction [deg] between pairs of source and target data sets (in the order is targetTables). If only one value is given, that would be applied to all taret data sets.
-        :param list lonTolerance: float list of spatial tolerance values in zonal direction [deg] between pairs of source and target data sets (in the order is targetTables). If only one value is given, that would be applied to all taret data sets.
-        :param list depthTolerance: float list of spatial tolerance values in vertical direction [m] between pairs of source and target data sets (in the order is targetTables). If only one value is given, that would be applied to all taret data sets.
+        :param list timeTolerance: float list of temporal tolerance values between pairs of source and target datasets. The size and order of values in this list should match those of targetTables. If only a single integer value is given, that would be applied to all target datasets. This parameter is in day units except when the target variable represents monthly climatology data in which case it is in month units. Notice fractional values are not supported in the current version.
+        :param list latTolerance: float list of spatial tolerance values in meridional direction [deg] between pairs of source and target data sets. If only one value is given, that would be applied to all target data sets.
+        :param list lonTolerance: float list of spatial tolerance values in zonal direction [deg] between pairs of source and target data sets. If only one value is given, that would be applied to all target data sets.
+        :param list depthTolerance: float list of spatial tolerance values in vertical direction [m] between pairs of source and target data sets. If only one value is given, that would be applied to all target data sets.
         """
 
         if isinstance(sourceTable, list): 

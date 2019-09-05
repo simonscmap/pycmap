@@ -158,7 +158,10 @@ def plot_timeseries(tables, variables, dt1, dt2, lat1, lat2, lon1, lon2, depth1,
     """   
     gos = []
     for i in tqdm(range(len(tables)), desc='overall'):
-        data = API().time_series(tables[i], variables[i], dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, interval=interval)
+        if API().is_climatology(tables[i]):
+            data = API().time_series(tables[i], variables[i], dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, interval=None)
+        else:    
+            data = API().time_series(tables[i], variables[i], dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, interval=interval)
         if len(data) < 1:
             no_data_reaction(i+1, tables[i], variables[i], dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2)
             continue
@@ -198,6 +201,48 @@ def plot_timeseries(tables, variables, dt1, dt2, lat1, lat2, lon1, lon2, depth1,
             go.x = data[data.columns[0]]
             if 'month' in data.columns:
                 go.xlabel = 'Month' 
+        go.ylabel = variables[i] + go.unit
+        go.legend = variables[i]
+        if show: go.render()
+        gos.append(go)
+    return gos
+
+
+def plot_depth_profile(tables, variables, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, exportDataFlag=False, show=True):
+    """
+    Create depth profile graph for each variable within a predefined space-time domain. 
+    Returns the generated graph objects in form of a python list. 
+    """   
+    gos = []
+    for i in tqdm(range(len(tables)), desc='overall'):
+        if not API().has_field(tables[i], 'depth'):
+            print_tqdm('%d: Table %s does not have depth field.' % (i+1, tables[i]), err=True)
+            continue
+        data = API().depth_profile(tables[i], variables[i], dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2)
+        if len(data) < 1:
+            no_data_reaction(i+1, tables[i], variables[i], dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2)
+            continue
+        print_tqdm('%d: %s retrieved (%s).' % (i+1, variables[i], tables[i]), err=False)
+
+        if exportDataFlag:
+            metadata = API().get_metadata(tables[i], variables[i])
+            fname = make_filename_by_table_var(tables[i], variables[i], prefix='DepthProfile')
+            df = data.copy()
+            df['time1'] = dt1
+            df['time2'] = dt2
+            df['lat1'] = lat1
+            df['lat2'] = lat2
+            df['lon1'] = lon1
+            df['lon2'] = lon2
+            Export(df, metadata, fname).save()
+
+        go = Trend(data, variables[i]).graph_obj()
+        go.unit = API().get_unit(tables[i], variables[i]) 
+        go.x = data['depth']
+        go.y = data[variables[i]]  
+        go.yErr = data[variables[i]+'_std']  
+        go.timeSeries = False
+        go.xlabel = 'Depth [m]'
         go.ylabel = variables[i] + go.unit
         go.legend = variables[i]
         if show: go.render()
@@ -370,6 +415,8 @@ def plot_xy(
 
 
 def plot_cruise_track(cruise):
+    """Plots cruise track on folium map."""
     track = API().cruise_trajectory(cruise)
+    print_tqdm('Cruise track retrieved.', err=False)
     folium_cruise_track(track, cruise)
     return

@@ -128,19 +128,23 @@ class _REST(object):
                 url_safe_query = urlencode(payload)
             url = self._baseURL + route + url_safe_query
             resp = requests.get(url, headers=headers)  
-            if resp.text.lower().strip() == 'unauthorized':
-                halt('Unauthorized API key!')
+            resp_text = resp.text   # not a big fan! it's slow. resp.json() ? 
+            if len(resp_text) < 50:
+                if resp_text.lower().strip()  == 'unauthorized':
+                    halt('Unauthorized API key!')
             try:
-                if resp.text != '':
-                    json_list = [orjson.loads(line) for line in resp.text.splitlines()]
+                if resp_text != '':
+                    json_list = [orjson.loads(line) for line in resp_text.splitlines()]
                     df = pd.DataFrame(json_list, columns=list(json_list[0]))
             except:
                 print_tqdm('REST API Error (status code {})'.format(resp.status_code), err=True)
-                print_tqdm(resp.text, err=True)  
+                print_tqdm(resp_text, err=True)  
         except HTTPError as http_error:
             # look for resp.status_code
             raise
         return df
+
+
 
 
     @staticmethod
@@ -230,9 +234,9 @@ class _REST(object):
         return self.query('EXEC uspCatalog')
 
 
-    def head(self, tableName):
-        """Returns top 5 records of a data set."""
-        return self.query('select TOP(5) * FROM %s' %tableName)
+    def head(self, tableName, rows=5):
+        """Returns top records of a data set."""
+        return self.query('select TOP(%d) * FROM %s' % (rows, tableName))
 
 
     def columns(self, tableName):
@@ -246,10 +250,14 @@ class _REST(object):
         return self.query(query)
 
 
+    def get_var_long_name(self, tableName, varName):
+        """Returns the long name of a given variable."""
+        return self.get_var(tableName, varName).iloc[0]['Long_Name']
+
+
     def get_unit(self, tableName, varName):
         """Returns the unit for a given variable."""
         return ' [' + self.get_var(tableName, varName).iloc[0]['Unit'] + ']'    
-
 
     def has_field(self, tableName, varName):
         """Returns a boolean confirming whether a field (varName) exists in a table (data set)."""
@@ -294,7 +302,7 @@ class _REST(object):
     def get_metadata(self, table, variable):
         """
         Returns a dataframe containing the associated metadata.
-        The inputs cane be string literals (if only one table, and variable is passed) or a list of string literals.
+        The inputs can be string literals (if only one table, and variable is passed) or a list of string literals.
         """
         if isinstance(table, str): table = [table]
         if isinstance(variable, str): variable = [variable]
@@ -318,13 +326,13 @@ class _REST(object):
         return self.query('EXEC uspCruises')
 
 
-    def cruise_by_name(self, cruise_name):
+    def cruise_by_name(self, cruiseName):
         """
         Returns a dataframe containing cruise info using cruise name.
         """
-        df = self.query("EXEC uspCruiseByName '%s' " % cruise_name)
+        df = self.query("EXEC uspCruiseByName '%s' " % cruiseName)
         if len(df) < 1:
-            halt('Invalid cruise name: %s' % cruise_name)
+            halt('Invalid cruise name: %s' % cruiseName)
         if len(df) > 1:
             df.drop('Keywords', axis=1, inplace=True)
             print(df)
@@ -332,19 +340,19 @@ class _REST(object):
         return df
 
 
-    def cruise_bounds(self, cruise_name):
+    def cruise_bounds(self, cruiseName):
         """
         Returns a dataframe containing cruise boundaries in space and time.
         """
-        df = self.cruise_by_name(cruise_name)
+        df = self.cruise_by_name(cruiseName)
         return self.query('EXEC uspCruiseBounds %d ' % df.iloc[0]['ID'])
 
 
-    def cruise_trajectory(self, cruise_name):
+    def cruise_trajectory(self, cruiseName):
         """
         Returns a dataframe containing the cruise trajectory.
         """
-        df = self.cruise_by_name(cruise_name)
+        df = self.cruise_by_name(cruiseName)
         return self.query('EXEC uspCruiseTrajectory %d ' % df.iloc[0]['ID'])
 
 
@@ -427,7 +435,7 @@ class _REST(object):
 
 
 
-    def along_track(self, cruise, tables, variables, depth1, depth2, temporalTolerance, latTolerance, lonTolerance, depthTolerance):     
+    def along_track(self, cruise, targetTables, targetVars, depth1, depth2, temporalTolerance, latTolerance, lonTolerance, depthTolerance):     
         """
         Takes a cruise name and colocalizes the cruise track with the specified variable(s).
         """
@@ -435,10 +443,8 @@ class _REST(object):
         return self.match(
                          sourceTable='tblCruise_Trajectory',
                          sourceVar=str(df.iloc[0]['ID']),
-                         targetTables=tables,
-                         targetVars=variables,
-                        #  dt1=df.iloc[0]['dt1'].split('T')[0],
-                        #  dt2=df.iloc[0]['dt2'].split('T')[0],
+                         targetTables=targetTables,
+                         targetVars=targetVars,
                          dt1=df.iloc[0]['dt1'],
                          dt2=df.iloc[0]['dt2'],
                          lat1=df.iloc[0]['lat1'],

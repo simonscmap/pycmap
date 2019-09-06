@@ -1,5 +1,5 @@
 [![PyPI version](https://badge.fury.io/py/pycmap.svg)](https://badge.fury.io/py/pycmap)
-
+[![DOI](https://zenodo.org/badge/199070692.svg)](https://zenodo.org/badge/latestdoi/199070692)
 ![Book Cover](docs/figures/CMAP.png)
 *Mohammad Dehghani Ashkezari <mdehghan@uw.edu>*, 
 

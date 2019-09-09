@@ -64,5 +64,4 @@ Simons CMAP website is under active development at the moment: [https://simonscm
 - [Cruise Track Plot](docs/Viz_CruiseTrack.ipynb)
 - [Correlation Matrix](docs/Viz_CorrelationMatrix.ipynb)
 - [Correlation Matrix Along Cruise Track](docs/Viz_CruiseCorrelationMatrix.ipynb)
-- [Video](docs/Viz_Video.ipynb)
 

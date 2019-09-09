@@ -1,13 +1,29 @@
 [![PyPI version](https://badge.fury.io/py/pycmap.svg)](https://badge.fury.io/py/pycmap)
 [![DOI](https://zenodo.org/badge/199070692.svg)](https://zenodo.org/badge/latestdoi/199070692)
-![Book Cover](docs/figures/CMAP.png)
+![Cover](docs/figures/CMAP.png)
 *Mohammad Dehghani Ashkezari <mdehghan@uw.edu>*, 
 
 *Raphael Hagen*,
 
-*Mike Denholtz*, *and*
+*Mike Denholtz, and*
 
 *Ginger Armbrust*
+
+
+Simons CMAP is an open source data service to retrieve, visualize, and analyze oceanic datasets such as in-situ observations, multi-decade global satellite remote sensing, and model outputs. Pycmap is the python package of Simons CMAP project providing a simple and unified interface to the hosted datasets at Simons CMAP database. It enables the scientists and general public to dive into the vast, and often under underutilized, ocean datasets and retrieve customized subsets of these massive datasets without going through the time-consuming process of data collection and preparation.
+
+## Documentation
+See the *table of contents* below for pycmap documentations. 
+<br />The docs are written in jupyter notebook format and each notebook contains one or more example codes. Please download the `/docs` directory and run the example codes locally. Alternatively, you may run the examples on google cloud using the *Colab badge* which appears at the top of each page: 
+<br /><img align="left" src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open in Colab" title="Open and Execute in Google Colaboratory">
+
+
+<br /><br />More detailed system documentations can be found at [https://cmap.readthedocs.io/en/latest/](https://cmap.readthedocs.io/en/latest/).
+
+## Website
+Simons CMAP website is under active development at the moment: [https://simonscmap.com](https://simonscmap.com)
+
+**<br />This project is supported by [Simons Foundation](https://www.simonsfoundation.org/).**
 
 
 

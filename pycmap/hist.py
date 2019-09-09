@@ -178,7 +178,12 @@ class HistPlotly(Hist):
                            title=self.title,
                            width=self.width,
                            height=self.height,
-                           xaxis={'title': self.xlabel},
-                           yaxis={'title': self.ylabel}
+                           xaxis={'title': self.xlabel,
+                                 'tickformat': '1.1e'
+                                 },
+                           yaxis={
+                                 'title': self.ylabel,
+                                 'tickformat': 'd'
+                                 }
                           )  
         self._save_plotly_(go, data, layout)                     

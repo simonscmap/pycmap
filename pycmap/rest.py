@@ -245,10 +245,18 @@ class _REST(object):
 
 
     def get_var(self, tableName, varName):
-        """Returns a single-row dataframe from tblVariables containing info associated with varName."""
+        """
+        Returns a single-row dataframe from tblVariables containing info associated with varName.
+        This method is mean to be used internally and will not be exposed at documentations.
+        """
         query = "SELECT * FROM tblVariables WHERE Table_Name='%s' AND Short_Name='%s'" % (tableName, varName)
         return self.query(query)
 
+
+    def get_var_catalog(self, tableName, varName):
+        """Returns a single-row dataframe from catalog (udfCatalog) containing all of the variable's info at catalog."""
+        query = "SELECT * FROM [dbo].udfCatalog() WHERE Table_Name='%s' AND Variable='%s'" % (tableName, varName)
+        return self.query(query)
 
     def get_var_long_name(self, tableName, varName):
         """Returns the long name of a given variable."""
@@ -258,6 +266,22 @@ class _REST(object):
     def get_unit(self, tableName, varName):
         """Returns the unit for a given variable."""
         return ' [' + self.get_var(tableName, varName).iloc[0]['Unit'] + ']'    
+
+
+    def get_var_resolution(self, tableName, varName):
+        """Returns a single-row dataframe from catalog (udfCatalog) containing the variable's spatial and temporal resolutions."""
+        return self.get_var_catalog(tableName, varName).loc[:, ['Temporal_Resolution', 'Spatial_Resolution']]
+
+
+    def get_var_coverage(self, tableName, varName):
+        """Returns a single-row dataframe from catalog (udfCatalog) containing the variable's spatial and temporal coverage."""
+        return self.get_var_catalog(tableName, varName).loc[:, ['Time_Min', 'Time_Max', 'Lat_Min', 'Lat_Max', 'Lon_Min', 'Lon_Max', 'Depth_Min', 'Depth_Max']]
+
+
+    def get_var_stat(self, tableName, varName):
+        """Returns a single-row dataframe from catalog (udfCatalog) containing the variable's summary statistics."""
+        return self.get_var_catalog(tableName, varName).loc[:, ['Variable_Min', 'Variable_Max', 'Variable_Mean', 'Variable_Std', 'Variable_Count', 'Variable_25th', 'Variable_50th', 'Variable_75th']]
+
 
     def has_field(self, tableName, varName):
         """Returns a boolean confirming whether a field (varName) exists in a table (data set)."""
@@ -277,6 +301,7 @@ class _REST(object):
         if df.Spatial_Resolution[0].lower().find('irregular') != -1:
             grid = False
         return grid
+
 
     @staticmethod
     def is_climatology(tableName):

@@ -13,6 +13,7 @@ from requests.exceptions import HTTPError
 import orjson
 from urllib.parse import urlencode
 import pandas as pd
+from pandas.compat import StringIO
 from .common import (
     halt,
     print_tqdm,
@@ -128,17 +129,23 @@ class _REST(object):
                 url_safe_query = urlencode(payload)
             url = self._baseURL + route + url_safe_query
             resp = requests.get(url, headers=headers)  
-            resp_text = resp.text   # not a big fan! it's slow. resp.json() ? 
+            resp_text = resp.text   # not a big fan, a bit slow?
             if len(resp_text) < 50:
                 if resp_text.lower().strip()  == 'unauthorized':
                     halt('Unauthorized API key!')
             try:
                 if resp_text != '':
-                    json_list = [orjson.loads(line) for line in resp_text.splitlines()]
-                    df = pd.DataFrame(json_list, columns=list(json_list[0]))
-            except:
+                    df = pd.read_csv(StringIO(resp_text))
+                    if 'time' in df.columns: 
+                        df['time'] = pd.to_datetime(df['time'])
+                        df['time'] = df['time'].dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+                    # json_list = [orjson.loads(line) for line in resp_text.splitlines()]
+                    # df = pd.DataFrame(json_list, columns=list(json_list[0]))
+            except Exception as e:
                 print_tqdm('REST API Error (status code {})'.format(resp.status_code), err=True)
                 print_tqdm(resp_text, err=True)  
+                print('********* Python Error Msg **********')
+                print(e)
         except HTTPError as http_error:
             # look for resp.status_code
             raise
@@ -203,14 +210,16 @@ class _REST(object):
 
     def query(self, query):
         """Takes a custom query and returns the results in form of a dataframe."""
-        route = '/dataretrieval/query?'
+        # route = '/dataretrieval/query?'     # JSON format, deprecated
+        route = '/api/data/query?'     # CSV format      
         payload = {'query': query}
         return self._request(route, method='GET', payload=payload)        
 
 
     def stored_proc(self, query, args):
         """Executes a strored-procedure and returns the results in form of a dataframe."""
-        route = '/dataretrieval/sp?'
+        # route = '/dataretrieval/sp?'     # JSON format, deprecated
+        route = '/api/data/sp?'     # CSV format
         payload = {
         'tableName': args[0],    
         'fields': args[1],

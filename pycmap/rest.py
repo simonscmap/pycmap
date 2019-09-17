@@ -139,6 +139,7 @@ class _REST(object):
                     if 'time' in df.columns: 
                         df['time'] = pd.to_datetime(df['time'])
                         df['time'] = df['time'].dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+
                     # json_list = [orjson.loads(line) for line in resp_text.splitlines()]
                     # df = pd.DataFrame(json_list, columns=list(json_list[0]))
             except Exception as e:
@@ -329,7 +330,7 @@ class _REST(object):
 
  
     def get_metadata_noref(self, table, variable):
-        query = "SELECT * FROM dbo.udfMetaData_NoRef('%s', '%s')" % (variable, table)
+        query = "SELECT * FROM dbo.udfCatalog() WHERE Variable='%s' AND Table_Name='%s'"  % (variable, table)
         return self.query(query)
         
 

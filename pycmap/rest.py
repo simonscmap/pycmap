@@ -296,7 +296,10 @@ class _REST(object):
     def has_field(self, tableName, varName):
         """Returns a boolean confirming whether a field (varName) exists in a table (data set)."""
         query = "SELECT COL_LENGTH('%s', '%s') AS RESULT " % (tableName, varName)
-        return False if self.query(query)['RESULT'][0] == None else True
+        df = self.query(query)['RESULT']
+        hasField = False
+        if len(df)>0: hasField = df[0]
+        return hasField
 
 
     def is_grid(self, tableName, varName):

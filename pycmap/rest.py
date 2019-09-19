@@ -124,17 +124,17 @@ class _REST(object):
         """               
         df = pd.DataFrame({})
         try:
-            url_safe_query = ''
+            queryString = ''
             if payload is not None:
-                url_safe_query = urlencode(payload)
-            url = self._baseURL + route + url_safe_query
+                queryString = urlencode(payload)
+            url = self._baseURL + route + queryString
             resp = requests.get(url, headers=headers)  
             resp_text = resp.text   # not a big fan, a bit slow?
             if len(resp_text) < 50:
                 if resp_text.lower().strip()  == 'unauthorized':
                     halt('Unauthorized API key!')
             try:
-                if resp_text != '':
+                if len(resp_text.strip())>0:
                     df = pd.read_csv(StringIO(resp_text))
                     if 'time' in df.columns: 
                         df['time'] = pd.to_datetime(df['time'])
@@ -389,6 +389,14 @@ class _REST(object):
         """
         df = self.cruise_by_name(cruiseName)
         return self.query('EXEC uspCruiseTrajectory %d ' % df.iloc[0]['ID'])
+
+
+    def cruise_variables(self, cruiseName):
+        """
+        Returns a dataframe containing all registered variables (at Simons CMAP) during a cruise.
+        """
+        df = self.cruise_by_name(cruiseName)
+        return self.query('SELECT * FROM dbo.udfCruiseVariables(%d) ' % df.iloc[0]['ID'])
 
 
     def subset(self, spName, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2):     

@@ -22,7 +22,7 @@ setup(
     description='Simons CMAP API python client',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/mdashkezari/pycmap',
+    url='https://github.com/simonscmap/pycmap',
     author='Mohammad D. Ashkezari',
     author_email='mdehghan@uw.edu',
     classifiers=[

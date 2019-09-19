@@ -51,6 +51,7 @@ Simons CMAP website is under active development at the moment: [https://simonscm
 - [Cruise Details by Name](docs/CruiseByName.ipynb)
 - [Cruise Spatio-Temporal Bounds](docs/CruiseBounds.ipynb)
 - [Cruise Trajectory](docs/CruiseTrajectory.ipynb)
+- [Cruise Variables](docs/CruiseVariables.ipynb)
 - [Data Subset: Generic Space-Time Cut](docs/SpaceTime.ipynb)
 - [Data Subset: TimeSeries](docs/TimeSeries.ipynb)
 - [Data Subset: Depth Profile](docs/DepthProfile.ipynb)

@@ -35,7 +35,7 @@ setup(
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
     install_requires=[
         'numpy', 
-        'pandas', 
+        'pandas<=0.24.2', 
         'scipy', 
         'bokeh', 
         'matplotlib', 

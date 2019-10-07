@@ -416,7 +416,15 @@ def plot_xy(
 
 def plot_cruise_track(cruise):
     """Plots cruise track on folium map."""
-    track = API().cruise_trajectory(cruise)
-    print_tqdm('Cruise track retrieved.', err=False)
-    folium_cruise_track(track, cruise)
+    if isinstance(cruise, str): cruise = [cruise]
+    df = pd.DataFrame({})
+    for cru in cruise:
+        track = API().cruise_trajectory(cru)
+        track['cruise'] = cru
+        print_tqdm('%s cruise track retrieved.' % cru, err=False)
+        df = df.append(track, ignore_index=True)
+    folium_cruise_track(df)
     return
+
+
+

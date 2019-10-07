@@ -20,7 +20,7 @@ from folium.plugins import HeatMap, MarkerCluster, Fullscreen, MousePosition
 
 
 
-colors = {'darkOrange': '#FF8C00', 'cyan': '#0A8A9F'}
+colors = ['#FF8C00', '#0A8A9F', 'gray', 'lightgreen', 'white', 'cadetblue', 'red', 'blue', 'green', 'purple', 'orange', 'darkred', 'lightred', 'pink']
 
 
 def addLayers(m):
@@ -101,12 +101,15 @@ def folium_map(df, table, variable, unit):
     return
 
 
-def folium_cruise_track(df, cruise):
+def folium_cruise_track(df):
+    df['lon'] = np.where(df['lon'] > 0, df['lon']-360, df['lon'])
     m = folium.Map([df.lat.mean(), df.lon.mean()], tiles=None, zoom_start=3, control_scale=True, prefer_canvas=True)
-    m.get_root().title = 'Cruise: ' + cruise
+    cruises = df['cruise'].unique()
+    m.get_root().title = 'Cruise: ' + ', '.join(cruises)
     m = addLayers(m)
     for i in range(len(df)):
-        folium.CircleMarker(location=[df.lat[i], df.lon[i]], radius=(2), color=colors['darkOrange'], fill=True).add_to(m)
+        ind = list(cruises).index(df.cruise[i]) % len(colors)
+        folium.CircleMarker(location=[df.lat[i], df.lon[i]], radius=(2), color=colors[ind], fill=True).add_to(m)
     m = addMousePosition(m)
     folium.LayerControl(collapsed=True).add_to(m)
     figureDir = get_figure_dir()
@@ -117,4 +120,4 @@ def folium_cruise_track(df, cruise):
         os.remove(fname)
     m.save(fname)
     open_HTML(fname)
-    return
+    return    

@@ -135,13 +135,13 @@ class _REST(object):
                     halt('Unauthorized API key!')
             try:
                 if len(resp_text.strip())>0:
-                    df = pd.read_csv(StringIO(resp_text))
-                    if 'time' in df.columns: 
-                        df['time'] = pd.to_datetime(df['time'])
-                        df['time'] = df['time'].dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+                    # df = pd.read_csv(StringIO(resp_text))
+                    # if 'time' in df.columns: 
+                    #     df['time'] = pd.to_datetime(df['time'])
+                    #     df['time'] = df['time'].dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
 
-                    # json_list = [orjson.loads(line) for line in resp_text.splitlines()]
-                    # df = pd.DataFrame(json_list, columns=list(json_list[0]))
+                    json_list = [orjson.loads(line) for line in resp_text.splitlines()]
+                    df = pd.DataFrame(json_list, columns=list(json_list[0]))
             except Exception as e:
                 print_tqdm('REST API Error (status code {})'.format(resp.status_code), err=True)
                 print_tqdm(resp_text, err=True)  
@@ -211,16 +211,16 @@ class _REST(object):
 
     def query(self, query):
         """Takes a custom query and returns the results in form of a dataframe."""
-        # route = '/dataretrieval/query?'     # JSON format, deprecated
-        route = '/api/data/query?'     # CSV format      
+        route = '/dataretrieval/query?'     # JSON format, deprecated
+        # route = '/api/data/query?'     # CSV format      
         payload = {'query': query}
         return self._request(route, method='GET', payload=payload)        
 
 
     def stored_proc(self, query, args):
         """Executes a strored-procedure and returns the results in form of a dataframe."""
-        # route = '/dataretrieval/sp?'     # JSON format, deprecated
-        route = '/api/data/sp?'     # CSV format
+        route = '/dataretrieval/sp?'     # JSON format, deprecated
+        # route = '/api/data/sp?'     # CSV format
         payload = {
         'tableName': args[0],    
         'fields': args[1],

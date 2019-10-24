@@ -135,13 +135,13 @@ class _REST(object):
                     halt('Unauthorized API key!')
             try:
                 if len(resp_text.strip())>0:
-                    # df = pd.read_csv(StringIO(resp_text))
-                    # if 'time' in df.columns: 
-                    #     df['time'] = pd.to_datetime(df['time'])
-                    #     df['time'] = df['time'].dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+                    df = pd.read_csv(StringIO(resp_text))
+                    if 'time' in df.columns: 
+                        df['time'] = pd.to_datetime(df['time'])
+                        df['time'] = df['time'].dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
 
-                    json_list = [orjson.loads(line) for line in resp_text.splitlines()]
-                    df = pd.DataFrame(json_list, columns=list(json_list[0]))
+                    # json_list = [orjson.loads(line) for line in resp_text.splitlines()]
+                    # df = pd.DataFrame(json_list, columns=list(json_list[0]))
             except Exception as e:
                 print_tqdm('REST API Error (status code {})'.format(resp.status_code), err=True)
                 print_tqdm(resp_text, err=True)  
@@ -211,16 +211,16 @@ class _REST(object):
 
     def query(self, query):
         """Takes a custom query and returns the results in form of a dataframe."""
-        route = '/dataretrieval/query?'     # JSON format, deprecated
-        # route = '/api/data/query?'     # CSV format      
+        # route = '/dataretrieval/query?'     # JSON format, deprecated
+        route = '/api/data/query?'     # CSV format      
         payload = {'query': query}
         return self._request(route, method='GET', payload=payload)        
 
 
     def stored_proc(self, query, args):
         """Executes a strored-procedure and returns the results in form of a dataframe."""
-        route = '/dataretrieval/sp?'     # JSON format, deprecated
-        # route = '/api/data/sp?'     # CSV format
+        # route = '/dataretrieval/sp?'     # JSON format, deprecated
+        route = '/api/data/sp?'     # CSV format
         payload = {
         'tableName': args[0],    
         'fields': args[1],
@@ -244,6 +244,11 @@ class _REST(object):
         return self.query('EXEC uspCatalog')
 
 
+    def datasets(self):
+        """Returns a dataframe containing the list of datasets hosted by Simons CMAP database."""
+        return self.query("EXEC uspDatasets")
+
+
     def head(self, tableName, rows=5):
         """Returns top records of a data set."""
         return self.query('select TOP(%d) * FROM %s' % (rows, tableName))
@@ -252,6 +257,26 @@ class _REST(object):
     def columns(self, tableName):
         """Returns the list of columns of a data set."""
         return self.query("SELECT COLUMN_NAME [Columns] FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = N'%s'" % tableName)
+
+
+    def get_dataset(self, tableName):
+        """
+        Returns the entire dataset.
+        It is not recommended to retrieve datasets with more than 100k rows using this method.
+        For large datasets, please use the 'space_time' method and retrieve the data in smaller chunks.
+        Note that this method does not return the dataset metadata. 
+        Use the 'get_metadata' method to get the dataset metadata.
+        """
+        maxRow = 2000000
+        df = self.query("SELECT JSON_stats FROM tblDataset_Stats WHERE Dataset_Name='%s' " % tableName)
+        df = pd.read_json(df['JSON_stats'][0])
+        rows = int(df.ix[['count'], 'lat'])
+        if rows > maxRow:
+            msg = "The requested dataset has %d records.\n" % rows 
+            msg += "It is not recommended to retrieve datasets with more than %d rows using this method.\n" % maxRow
+            msg += "For large datasets, please use the 'space_time' method and retrieve the data in smaller chunks." 
+            halt(msg)
+        return self.query("SELECT * FROM %s" % tableName)
 
 
     def get_var(self, tableName, varName):

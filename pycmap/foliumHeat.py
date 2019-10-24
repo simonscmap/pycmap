@@ -49,7 +49,7 @@ def addMarkers(m, df, variable, unit):
     normalized = normalize(df[variable])
     mc = MarkerCluster(name=variable+unit, options={'spiderfyOnMaxZoom':'False', 'disableClusteringAtZoom' : '4'})
     for i in range(len(df)):
-        folium.CircleMarker(location=[df.lat[i], df.lon[i]], radius=(normalized[i] * 10), tooltip='%s: %f%s <br> date: %s' % (variable, df[variable][i], unit, df['time'][i]), color=colors['darkOrange'], fill=True).add_to(mc)
+        folium.CircleMarker(location=[df.lat[i], df.lon[i]], radius=(normalized[i] * 10), tooltip='%s: %f%s <br> date: %s' % (variable, df[variable][i], unit, df['time'][i]), color='darkOrange', fill=True).add_to(mc)
     mc.add_to(m)
     return m
 
@@ -68,7 +68,7 @@ def addFullScreen(m):
 def addTrackMarkers(m, df, cruise):
     mc = MarkerCluster(name=cruise, options={'spiderfyOnMaxZoom':'False', 'disableClusteringAtZoom' : '4'})
     for i in range(len(df)):
-        folium.CircleMarker(location=[df.lat[i], df.lon[i]], radius=(2), color=colors['darkOrange'], fill=True).add_to(mc)
+        folium.CircleMarker(location=[df.lat[i], df.lon[i]], radius=(2), color='darkOrange', fill=True).add_to(mc)
     mc.add_to(m)
     return m
 

@@ -35,13 +35,12 @@ setup(
     packages=find_packages(exclude=['contrib', 'docs', 'tests']),
     install_requires=[
         'numpy', 
-        'pandas<=0.24.2', 
+        'pandas', 
         'scipy', 
         'bokeh', 
         'matplotlib', 
         'cmocean',
         'tqdm', 
-        'orjson',
         'folium', 
         'colorama',
         'plotly'

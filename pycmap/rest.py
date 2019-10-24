@@ -10,10 +10,9 @@ Function: Encapsulates RESTful API logic.
 import sys
 import requests
 from requests.exceptions import HTTPError
-import orjson
 from urllib.parse import urlencode
 import pandas as pd
-from pandas.compat import StringIO
+from io import StringIO
 from .common import (
     halt,
     print_tqdm,

@@ -103,7 +103,7 @@ class Map(BaseGraph):
                     frame = self.data[self.data[timeCol] == t]
 
                     if timeCol == 'time':
-                        sub = self.variable + self.unit + ', ' + str(datetime.strptime(t, '%Y-%m-%dT%H:%M:%S.%fZ').date())
+                        sub = self.variable + self.unit + ', ' + str(datetime.strptime(t, '%Y-%m-%dT%H:%M:%S').date())
                     else:
                         sub = self.variable + self.unit + ', ' + timeCol + ': ' + str(t)    
 

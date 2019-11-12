@@ -17,10 +17,9 @@ from .common import (
 import numpy as np
 import folium
 from folium.plugins import HeatMap, MarkerCluster, Fullscreen, MousePosition
+import branca
 
-
-
-colors = ['#FF8C00', '#0A8A9F', 'gray', 'lightgreen', 'white', 'cadetblue', 'red', 'blue', 'green', 'purple', 'orange', 'darkred', 'lightred', 'pink']
+colors = ['#FF8C00', '#0A8A9F', '#808080', '#90EE90', '#FFFFFF', '#5F9EA0', '#FF0000', '#0000FF', '#008000', '#800080', '#FFA500', '#8B0000', '#FFFFE0', '#FFC0CB']
 
 
 def addLayers(m):
@@ -72,7 +71,44 @@ def addTrackMarkers(m, df, cruise):
     mc.add_to(m)
     return m
 
+def add_cruise_legend(m, cruises, legendColors):
+    legendItems = ''
+    for i in range(len(cruises)):
+        legendItems += '<p><a style="color:'+legendColors[i]+';font-size:150%;margin-left:20px;">o</a>&emsp;'+cruises[i]+'</p>\n' 
 
+    leg_height = 40 * len(cruises)
+    legend_html = '''
+    {% macro html(this, kwargs) %}
+    <div style="
+        position: fixed; 
+        bottom: 50px;
+        left: 10px;
+        width: 250px;
+        height: ''' + str(leg_height) + '''px;
+        z-index:9999;
+        font-size:14px;
+        ">
+    '''    
+    legend_html += legendItems
+    legend_html += '''</div>
+    <div style="
+        position: fixed; 
+        bottom: 50px;
+        left: 10px;
+        width: 150px;
+        height: ''' + str(leg_height) + '''px; 
+        z-index:9998;
+        font-size:14px;
+        background-color: #ffffff;
+        opacity: 0.7;
+        ">
+    </div>
+    {% endmacro %}
+    '''
+    legend = branca.element.MacroElement()
+    legend._template = branca.element.Template(legend_html)
+    m.get_root().add_child(legend)
+    return m
 
 def folium_map(df, table, variable, unit):
     df.dropna(subset=[variable], inplace=True)
@@ -88,8 +124,6 @@ def folium_map(df, table, variable, unit):
     m = addMousePosition(m)
     folium.LayerControl(collapsed=True).add_to(m)
     # m = addFullScreen(m)
-
-
     figureDir = get_figure_dir()
     if not os.path.exists(figureDir): os.makedirs(figureDir)
 
@@ -107,11 +141,15 @@ def folium_cruise_track(df):
     cruises = df['cruise'].unique()
     m.get_root().title = 'Cruise: ' + ', '.join(cruises)
     m = addLayers(m)
+    legendColors = []
     for i in range(len(df)):
         ind = list(cruises).index(df.cruise[i]) % len(colors)
+        if len(legendColors) == 0: legendColors.append(colors[ind])
+        if legendColors[-1] != colors[ind]: legendColors.append(colors[ind])
         folium.CircleMarker(location=[df.lat[i], df.lon[i]], radius=(2), color=colors[ind], fill=True).add_to(m)
     m = addMousePosition(m)
     folium.LayerControl(collapsed=True).add_to(m)
+    m = add_cruise_legend(m, cruises, legendColors)
     figureDir = get_figure_dir()
     if not os.path.exists(figureDir): os.makedirs(figureDir)
 

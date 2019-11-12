@@ -137,7 +137,7 @@ class _REST(object):
                     df = pd.read_csv(StringIO(resp_text))
                     if 'time' in df.columns: 
                         df['time'] = pd.to_datetime(df['time'])
-                        df['time'] = df['time'].dt.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+                        df['time'] = df['time'].dt.strftime('%Y-%m-%dT%H:%M:%S')
 
                     # json_list = [orjson.loads(line) for line in resp_text.splitlines()]
                     # df = pd.DataFrame(json_list, columns=list(json_list[0]))
@@ -241,6 +241,28 @@ class _REST(object):
     def get_catalog(self):
         """Returns a dataframe containing full Simons CMAP catalog of variables."""
         return self.query('EXEC uspCatalog')
+
+
+    def search_catalog(self, keywords):
+        """
+        Returns a dataframe containing a subset of Simons CMAP catalog of variables. 
+        All variables at Simons CMAP catalog are annotated with a collection of semantically related keywords. 
+        This method takes the passed keywords and returns all of the variables annotated with similar keywords.
+        The passed keywords should be separated by blank space. The search result is not sensitive to the order of keywords and is not case sensitive.
+        The passed keywords could be any 'hint' to the target variables. Below are a few examples: 
+        
+        * the exact variable name (e.g. NO3), or its linguistic term (Nitrate)
+
+        * methodology (model, satellite ...), instrument (CTD, seaflow), or disciplines (physics, biology ...) 
+
+        * the cruise official name (e.g. KOK1606), or unofficial cruise name (Falkor)
+
+        * the name of data producer (e.g Penny Chisholm) or institution name (MIT)
+
+        If you searched for a variable with semantically-related-keywords and did not get the correct results, please let us know. 
+        We can update the keywords at any point.
+        """
+        return self.query("EXEC uspSearchCatalog '%s'" % keywords)
 
 
     def datasets(self):

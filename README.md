@@ -36,6 +36,7 @@ Simons CMAP website is under active development at the moment: [https://simonscm
 ### [1. Data Retrieval (API)](docs/API.ipynb)
 - [Query](docs/Query.ipynb)
 - [Catalog](docs/Catalog.ipynb)
+- [Search Catalog](docs/SearchCatalog.ipynb)
 - [Datasets](docs/Datasets.ipynb)
 - [MetaData](docs/MetaData.ipynb)
 - [Dataset Columns](docs/Columns.ipynb)

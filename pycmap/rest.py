@@ -249,7 +249,7 @@ class _REST(object):
         All variables at Simons CMAP catalog are annotated with a collection of semantically related keywords. 
         This method takes the passed keywords and returns all of the variables annotated with similar keywords.
         The passed keywords should be separated by blank space. The search result is not sensitive to the order of keywords and is not case sensitive.
-        The passed keywords could be any 'hint' to the target variables. Below are a few examples: 
+        The passed keywords can provide any 'hint' associated with the target variables. Below are a few examples: 
         
         * the exact variable name (e.g. NO3), or its linguistic term (Nitrate)
 

@@ -266,18 +266,18 @@ class _REST(object):
 
 
     def datasets(self):
-        """Returns a dataframe containing the list of datasets hosted by Simons CMAP database."""
+        """Returns a dataframe containing the list of data sets hosted by Simons CMAP database."""
         return self.query("EXEC uspDatasets")
 
 
     def head(self, tableName, rows=5):
         """Returns top records of a data set."""
-        return self.query('select TOP(%d) * FROM %s' % (rows, tableName))
+        return self.query("EXEC uspHead '%s', '%d'" % (tableName, rows))
 
 
     def columns(self, tableName):
-        """Returns the list of columns of a data set."""
-        return self.query("SELECT COLUMN_NAME [Columns] FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = N'%s'" % tableName)
+        """Returns the list of data set columns."""
+        return self.query("EXEC uspColumns '%s'" % tableName)
 
 
     def get_dataset(self, tableName):
@@ -316,27 +316,27 @@ class _REST(object):
 
     def get_var_long_name(self, tableName, varName):
         """Returns the long name of a given variable."""
-        return self.get_var(tableName, varName).iloc[0]['Long_Name']
+        return self.query("EXEC uspVariableLongName '%s', '%s'" % (tableName, varName)).iloc[0]['Long_Name']
 
 
     def get_unit(self, tableName, varName):
         """Returns the unit for a given variable."""
-        return ' [' + self.get_var(tableName, varName).iloc[0]['Unit'] + ']'    
+        return ' [' + self.query("EXEC uspVariableUnit '%s', '%s'" % (tableName, varName)).iloc[0]['Unit'] + ']' 
 
 
     def get_var_resolution(self, tableName, varName):
         """Returns a single-row dataframe from catalog (udfCatalog) containing the variable's spatial and temporal resolutions."""
-        return self.get_var_catalog(tableName, varName).loc[:, ['Temporal_Resolution', 'Spatial_Resolution']]
+        return self.query("EXEC uspVariableResolution '%s', '%s'" % (tableName, varName))
 
 
     def get_var_coverage(self, tableName, varName):
         """Returns a single-row dataframe from catalog (udfCatalog) containing the variable's spatial and temporal coverage."""
-        return self.get_var_catalog(tableName, varName).loc[:, ['Time_Min', 'Time_Max', 'Lat_Min', 'Lat_Max', 'Lon_Min', 'Lon_Max', 'Depth_Min', 'Depth_Max']]
+        return self.query("EXEC uspVariableCoverage '%s', '%s'" % (tableName, varName))
 
 
     def get_var_stat(self, tableName, varName):
         """Returns a single-row dataframe from catalog (udfCatalog) containing the variable's summary statistics."""
-        return self.get_var_catalog(tableName, varName).loc[:, ['Variable_Min', 'Variable_Max', 'Variable_Mean', 'Variable_Std', 'Variable_Count', 'Variable_25th', 'Variable_50th', 'Variable_75th']]
+        return self.query("EXEC uspVariableStat '%s', '%s'" % (tableName, varName))
 
 
     def has_field(self, tableName, varName):
@@ -379,6 +379,10 @@ class _REST(object):
 
  
     def get_metadata_noref(self, table, variable):
+        """
+        Returns a dataframe containing the associated metadata for a single variable.
+        The returned metadata does not include the list of references and articles associated with the variable.  
+        """
         query = "SELECT * FROM dbo.udfCatalog() WHERE Variable='%s' AND Table_Name='%s'"  % (variable, table)
         return self.query(query)
         
@@ -392,14 +396,8 @@ class _REST(object):
         if isinstance(variable, str): variable = [variable]
         metadata = pd.DataFrame({})    
         for i in range(len(table)):    
-            df = self.get_metadata_noref(table[i], variable[i])
-            datasetID = df.iloc[0]['Dataset_ID']
-            refs = self.get_references(datasetID)
-            df = pd.concat([df, refs], axis=1)
-            if i == 0:
-                metadata = df
-            else:    
-                metadata = pd.concat([metadata, df], axis=0, sort=False)
+            df = self.query("EXEC uspVariableMetaData '%s', '%s'" % (table[i], variable[i]))
+            metadata = pd.concat([metadata, df], axis=0, sort=False)
         return metadata 
 
 

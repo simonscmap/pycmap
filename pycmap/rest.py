@@ -286,7 +286,7 @@ class _REST(object):
         It is not recommended to retrieve datasets with more than 100k rows using this method.
         For large datasets, please use the 'space_time' method and retrieve the data in smaller chunks.
         Note that this method does not return the dataset metadata. 
-        Use the 'get_metadata' method to get the dataset metadata.
+        Use the 'get_dataset_metadata' method to get the dataset metadata.
         """
         maxRow = 2000000
         df = self.query("SELECT JSON_stats FROM tblDataset_Stats WHERE Dataset_Name='%s' " % tableName)
@@ -298,6 +298,11 @@ class _REST(object):
             msg += "For large datasets, please use the 'space_time' method and retrieve the data in smaller chunks." 
             halt(msg)
         return self.query("SELECT * FROM %s" % tableName)
+
+
+    def get_dataset_metadata(self, tableName):
+        """Returns a dataframe containing the dataset metadata."""
+        return self.query("EXEC uspDatasetMetadata  '%s'" % tableName)
 
 
     def get_var(self, tableName, varName):
@@ -344,7 +349,7 @@ class _REST(object):
         query = "SELECT COL_LENGTH('%s', '%s') AS RESULT " % (tableName, varName)
         df = self.query(query)['RESULT']
         hasField = False
-        if len(df)>0: hasField = df[0]
+        if len(df)>0: hasField = True
         return hasField
 
 
@@ -416,7 +421,7 @@ class _REST(object):
         if len(df) < 1:
             halt('Invalid cruise name: %s' % cruiseName)
         if len(df) > 1:
-            df.drop('Keywords', axis=1, inplace=True)
+            if 'Keywords' in df.columns: df.drop('Keywords', axis=1, inplace=True)df.drop('Keywords', axis=1, inplace=True)
             print(df)
             halt('More than one cruise found. Please provide a more specific cruise name: ')
         return df

@@ -421,7 +421,7 @@ class _REST(object):
         if len(df) < 1:
             halt('Invalid cruise name: %s' % cruiseName)
         if len(df) > 1:
-            if 'Keywords' in df.columns: df.drop('Keywords', axis=1, inplace=True)df.drop('Keywords', axis=1, inplace=True)
+            if 'Keywords' in df.columns: df.drop('Keywords', axis=1, inplace=True)
             print(df)
             halt('More than one cruise found. Please provide a more specific cruise name: ')
         return df

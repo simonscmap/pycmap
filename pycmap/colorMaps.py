@@ -97,5 +97,6 @@ def getPalette(varName):
         paletteName = cmocean.cm.balance
     elif varName.find('AOD') != -1:
         paletteName = 'inferno'
-
+    elif varName.find('PAR') != -1:
+        paletteName = 'Spectral_r'
     return paletteName

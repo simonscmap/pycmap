@@ -291,7 +291,7 @@ class _REST(object):
         maxRow = 2000000
         df = self.query("SELECT JSON_stats FROM tblDataset_Stats WHERE Dataset_Name='%s' " % tableName)
         df = pd.read_json(df['JSON_stats'][0])
-        rows = int(df.ix[['count'], 'lat'])
+        rows = int(df.loc[['count'], 'lat'])
         if rows > maxRow:
             msg = "The requested dataset has %d records.\n" % rows 
             msg += "It is not recommended to retrieve datasets with more than %d rows using this method.\n" % maxRow

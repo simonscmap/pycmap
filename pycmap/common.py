@@ -118,6 +118,13 @@ def initiate_config_file(token, vizEngine, exportDir, exportFormat, figureDir):
         pd.DataFrame(config).to_csv(config_path(), index=False)
         return
 
+def remove_angle_brackets(token):
+        """Removes angle brackets at start and end of the token, if exist."""
+        if token is not None:
+                if token[0] == '<': token = token[1:]
+                if token[-1] == '>': token = token[:-1]
+        return token
+
 
 def save_config(token=None, vizEngine=None, exportDir=None, exportFormat=None, figureDir=None):
         """Updates the project's configs at the config spreadsheet."""
@@ -126,7 +133,7 @@ def save_config(token=None, vizEngine=None, exportDir=None, exportFormat=None, f
                 initiate_config_file(token, vizEngine, exportDir, exportFormat, figureDir)     
         df = pd.read_csv(configPath)
         if token is not None:
-                df['token'] = token
+                df['token'] = remove_angle_brackets(token)
         if vizEngine is not None:
                 supportedVizEngines = ['bokeh', 'plotly']
                 if vizEngine not in supportedVizEngines:
@@ -156,7 +163,7 @@ def load_config():
 
 def get_token():
         """Returns the API key."""
-        return load_config()['token'][0]
+        return remove_angle_brackets(load_config()['token'][0])
 
 def get_vizEngine():
         """Returns the visualization library name."""

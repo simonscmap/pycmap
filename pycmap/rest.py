@@ -18,6 +18,7 @@ from .common import (
     print_tqdm,
     get_base_url,
     get_token,
+    remove_angle_brackets,
     save_config, 
     inline
 )
@@ -80,7 +81,7 @@ class _REST(object):
         :param str exportFormat: file format of the exported files.
         """
 
-        self._token = token or get_token()
+        self._token = remove_angle_brackets(token) or get_token()
         self._baseURL = baseURL or get_base_url()
         self._headers = headers
         self._token_prefix = 'Api-Key '
@@ -280,6 +281,19 @@ class _REST(object):
         return self.query("EXEC uspColumns '%s'" % tableName)
 
 
+    def get_dataset_ID(self, tableName):
+        """
+        Returns dataset ID.
+        """
+        df = self.query("SELECT DISTINCT(Dataset_ID) FROM dbo.udfCatalog() WHERE LOWER(Table_Name)=LOWER('%s') " % tableName)
+        if len(df) < 1:
+            halt('Invalid table name: %s' % cruiseName)
+        if len(df) > 1:
+            halt('More than one table found. Please provide a more specific name: ')
+            print(df)
+        return df.iloc[0]['Dataset_ID']            
+
+
     def get_dataset(self, tableName):
         """
         Returns the entire dataset.
@@ -288,8 +302,9 @@ class _REST(object):
         Note that this method does not return the dataset metadata. 
         Use the 'get_dataset_metadata' method to get the dataset metadata.
         """
+        datasetID = self.get_dataset_ID(tableName)
         maxRow = 2000000
-        df = self.query("SELECT JSON_stats FROM tblDataset_Stats WHERE Dataset_Name='%s' " % tableName)
+        df = self.query("SELECT JSON_stats FROM tblDataset_Stats WHERE Dataset_ID=%d " % datasetID)
         df = pd.read_json(df['JSON_stats'][0])
         rows = int(df.loc[['count'], 'lat'])
         if rows > maxRow:

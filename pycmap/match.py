@@ -115,7 +115,7 @@ class Match(object):
 
     def validateInit(self):
         def is_number(val):
-            return isinstance(self.lat2, float) or isinstance(self.lat2, int) or isinstance(self.lat2, np.int64)
+            return isinstance(val, float) or isinstance(val, int) or isinstance(val, np.int64)
 
         msg = ''
         if not isinstance(self.spname, str): msg += 'spname (stored procedure name) should be string literal. \n'

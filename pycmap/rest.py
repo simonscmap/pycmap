@@ -11,6 +11,7 @@ import sys
 import requests
 from requests.exceptions import HTTPError
 from urllib.parse import urlencode
+import numpy as np
 import pandas as pd
 from io import StringIO
 from .common import (
@@ -182,6 +183,9 @@ class _REST(object):
         :param float depth2: end depth [m].
         """
 
+        def is_number(val):
+            return isinstance(val, float) or isinstance(val, int) or isinstance(val, np.int64)
+
         msg = ''
         if not isinstance(table, str):
             msg += 'table name should be string. \n'
@@ -191,18 +195,12 @@ class _REST(object):
             msg += 'dt1 (start date) should be string. \n'
         if not isinstance(dt2, str):
             msg += 'dt2 (end date) should be string. \n'
-        if not isinstance(lat1, float) and not isinstance(lat1, int):
-            msg += 'lat1 (start latitude) should be float or integer. \n'
-        if not isinstance(lat2, float) and not isinstance(lat2, int):
-            msg += 'lat2 (end latitude) should be float or integer. \n'
-        if not isinstance(lon1, float) and not isinstance(lon1, int):
-            msg += 'lon1 (start longitude) should be float or integer. \n'
-        if not isinstance(lon2, float) and not isinstance(lon2, int):
-            msg += 'lon2 (end longitude) should be float or integer. \n'
-        if not isinstance(depth1, float) and not isinstance(depth1, int):
-            msg += 'depth1 (start depth) should be float or integer. \n'
-        if not isinstance(depth2, float) and not isinstance(depth2, int):
-            msg += 'lat2 (end depth) should be float or integer. \n'
+        if not is_number(lat1): msg += 'lat1 (start latitude) should be float or integer. \n'
+        if not is_number(lat2): msg += 'lat2 (end latitude) should be float or integer. \n'
+        if not is_number(lon1): msg += 'lon1 (start longitude) should be float or integer. \n'
+        if not is_number(lon2): msg += 'lon2 (end longitude) should be float or integer. \n'
+        if not is_number(depth1): msg += 'depth1 (start depth) should be float or integer. \n'
+        if not is_number(depth2): msg += 'depth2 (end depth) should be float or integer. \n'
 
         if len(msg) > 0:        
             halt(msg)    
@@ -287,7 +285,7 @@ class _REST(object):
         """
         df = self.query("SELECT DISTINCT(Dataset_ID) FROM dbo.udfCatalog() WHERE LOWER(Table_Name)=LOWER('%s') " % tableName)
         if len(df) < 1:
-            halt('Invalid table name: %s' % cruiseName)
+            halt('Invalid table name: %s' % tableName)
         if len(df) > 1:
             halt('More than one table found. Please provide a more specific name: ')
             print(df)

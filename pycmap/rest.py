@@ -528,6 +528,54 @@ class _REST(object):
         return self.subset('uspSectionMap', table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2)
 
 
+    @staticmethod
+    def _climatology_period(period):
+        period = period.lower().strip()
+        if period in ['d', 'day', 'dayofyear']:
+            climPeriod = 'dayofyear'
+        elif period in ['w', 'week', 'weekly']:
+            climPeriod = 'week'
+        elif period in ['m', 'month', 'monthly']:
+            climPeriod = 'month'
+        elif period in ['y', 'a', 'year', 'yearly', 'annual']:
+            climPeriod = 'year'
+        else:
+            halt('Invalid climatology period: %s' % period)
+        return climPeriod
+
+
+    def climatology(self, table, variable, period, periodVal, lat1, lat2, lon1, lon2, depth1, depth2):     
+        """
+        Computes the climatology of a gridded dataset over a spatial domain delimited by (lat1, lat2, lon1, lon2, depth1, depth2). 
+        Note this method does not apply to sparse datasets. 
+        The parameter `period` specifies the climatology interval (e.g weekly, monthly...) and `periodVal` sets the interval value. 
+        For example, to compute the climatology of a variable for the month of October, `period` is set to 'month' and `periodVal` is set to 10. 
+        Please avoid using periods that are finner than the temporal resolution of the underlying dataset. 
+        For instance, if the dataset is a weekly-averaged product, do not set the `period` to 'dayofyear'.
+        The output of this method is a Pandas DataFrame ordered by time, lat, lon, and depth (if exists), respectively.
+        """
+        period = self._climatology_period(period)
+        if self.is_climatology(table):
+            print_tqdm(
+                'Table %s already contains a climatological dataset.' % table, 
+                err=True)
+            return pd.DataFrame({})
+
+        if not self.is_grid(table, variable):
+            print_tqdm(
+                'This method only applies to the uniformly gridded datasets. Table %s represents an irregular dataset.' % table, 
+                err=True)
+            return pd.DataFrame({})
+
+        if not self.has_field(table, period):
+            print_tqdm(
+                'Climatology computation is not supported by %s.\nPlease let us know if you think we should enable climatology calculations for this dataset.' % table, 
+                err=True)
+            return pd.DataFrame({})
+                    
+        return self.query("uspAggregate '%s', '%s', '%s', %d, %f, %f, %f, %f, %f, %f" % (table, variable, period, periodVal, lat1, lat2, lon1, lon2, depth1, depth2) )
+
+
     def match(self, sourceTable, sourceVar, targetTables, targetVars, 
              dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, 
              temporalTolerance, latTolerance, lonTolerance, depthTolerance):     

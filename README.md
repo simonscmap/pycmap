@@ -49,7 +49,7 @@ Simons CMAP website is under active development at the moment: [https://simonscm
 - [Variable Stat](docs/Stat.ipynb)
 - [If Column Exists](docs/HasField.ipynb)
 - [Is Gridded Product](docs/Grid.ipynb)
-- [Is Climatology Product](docs/Climatology.ipynb)
+- [Is Climatology Product](docs/IsClimatology.ipynb)
 - [List of Cruises](docs/Cruises.ipynb)
 - [Cruise Details by Name](docs/CruiseByName.ipynb)
 - [Cruise Spatio-Temporal Bounds](docs/CruiseBounds.ipynb)
@@ -59,6 +59,7 @@ Simons CMAP website is under active development at the moment: [https://simonscm
 - [Data Subset: Generic Space-Time Cut](docs/SpaceTime.ipynb)
 - [Data Subset: TimeSeries](docs/TimeSeries.ipynb)
 - [Data Subset: Depth Profile](docs/DepthProfile.ipynb)
+- [Compute Climatology](docs/Climatology.ipynb)
 - [Match (colocalize) Datasets](docs/Match.ipynb)
 - [Match (colocalize) Cruise Track with Datasets](docs/MatchCruise.ipynb)
 

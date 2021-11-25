@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import sys
 import warnings
 from .cmap import API  # noqa
+from .sample import Sample  # noqa
 
 
 
@@ -14,6 +15,6 @@ if sys.version_info < (3, 0):
         UserWarning
     )
 
-__version__ = '0.1.9'
+__version__ = '0.2.1'
 # __all__ = []
  

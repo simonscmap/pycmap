@@ -135,7 +135,7 @@ def folium_map(df, table, variable, unit):
     return
 
 
-def folium_cruise_track(df):
+def folium_cruise_track(df, stations=None):
     df['lon'] = np.where(df['lon'] > 0, df['lon']-360, df['lon'])
     m = folium.Map([df.lat.mean(), df.lon.mean()], tiles=None, zoom_start=3, control_scale=True, prefer_canvas=True)
     cruises = df['cruise'].unique()
@@ -147,6 +147,12 @@ def folium_cruise_track(df):
         if len(legendColors) == 0: legendColors.append(colors[ind])
         if legendColors[-1] != colors[ind]: legendColors.append(colors[ind])
         folium.CircleMarker(location=[df.lat[i], df.lon[i]], radius=(2), color=colors[ind], fill=True).add_to(m)
+
+    if not stations is None:
+        for i in range(len(stations)):
+            folium.CircleMarker(location=[stations[i][1], stations[i][0]], radius=(8), color='#000000', fill=True).add_to(m)    
+            folium.CircleMarker(location=[stations[i][1], stations[i][0]], radius=(5), color='#FFFFFF', fill=True).add_to(m)    
+
     m = addMousePosition(m)
     folium.LayerControl(collapsed=True).add_to(m)
     m = add_cruise_legend(m, cruises, legendColors)
@@ -158,4 +164,4 @@ def folium_cruise_track(df):
         os.remove(fname)
     m.save(fname)
     open_HTML(fname)
-    return    
+    return      

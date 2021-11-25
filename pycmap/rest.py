@@ -7,7 +7,7 @@ Function: Encapsulates RESTful API logic.
 """
 
 
-import sys
+import random
 import requests
 from requests.exceptions import HTTPError
 from urllib.parse import urlencode
@@ -207,11 +207,11 @@ class _REST(object):
         return msg
 
 
-    def query(self, query):
+    def query(self, query, servers=['rainier']):
         """Takes a custom query and returns the results in form of a dataframe."""
         # route = '/dataretrieval/query?'     # JSON format, deprecated
         route = '/api/data/query?'     # CSV format      
-        payload = {'query': query}
+        payload = {'query': query, 'servername': random.choice(servers)}
         return self._request(route, method='GET', payload=payload)        
 
 
@@ -380,14 +380,12 @@ class _REST(object):
         return grid
 
 
-    @staticmethod
-    def is_climatology(tableName):
+
+    def is_climatology(self, tableName):
         """
         Returns True if the table represents a climatological data set.    
-        Currently, the logic is based on the table name.
-        Ultimately, it should query the DB to determine if it's a climatological data set.
         """
-        return True if tableName.find('_Climatology') != -1 else False  
+        return True if self.query(f"SELECT * FROM tblDatasets d JOIN tblVariables v ON d.ID=v.Dataset_ID WHERE v.Table_Name='{tableName}'").iloc[0]['Climatology'] == 1 else False
 
 
     def get_references(self, datasetID):

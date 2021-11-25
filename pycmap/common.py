@@ -16,6 +16,8 @@ import webbrowser
 import IPython
 
 
+MAX_SAMPLE_SOURCE = 7
+
 def halt(msg):
         """Prints an error message and terminates the program."""
         msg = '\n' + msg

@@ -2,7 +2,7 @@
 [![DOI](https://zenodo.org/badge/199070692.svg)](https://zenodo.org/badge/latestdoi/199070692)
 ![Cover](https://github.com/simonscmap/pycmap/raw/master/docs/figures/CMAP.png)
 
-*Mohammad Dehghani Ashkezari <mdehghan@uw.edu>*, 
+*Mohammad Dehghani Ashkezari <mdehghan@uw.edu>*
 
 
 # Pycmap

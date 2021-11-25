@@ -1,13 +1,9 @@
 [![PyPI version](https://badge.fury.io/py/pycmap.svg)](https://badge.fury.io/py/pycmap)
 [![DOI](https://zenodo.org/badge/199070692.svg)](https://zenodo.org/badge/latestdoi/199070692)
-![Cover](docs/figures/CMAP.png)
+![Cover](https://github.com/simonscmap/pycmap/raw/master/docs/figures/CMAP.png)
+
 *Mohammad Dehghani Ashkezari <mdehghan@uw.edu>*, 
 
-*Raphael Hagen*,
-
-*Mike Denholtz, and*
-
-*Ginger Armbrust*
 
 # Pycmap
 Simons CMAP is an open-source data service to retrieve, visualize, and analyze oceanic datasets such as in-situ observations, multi-decade global satellite remote sensing, and model outputs. Pycmap is the python package of Simons CMAP project providing a simple and unified interface to the hosted datasets at Simons CMAP database. It enables the scientists and general public to dive into the vast, and often underutilized, ocean datasets and retrieve customized subsets of these massive datasets without going through the time-consuming process of data collection and preparation.

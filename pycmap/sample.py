@@ -130,7 +130,7 @@ def Sample(source, targets):
             }
 
     """
-    if len(source) > 1: halt(f"Source dataset too large. Maximum allowed number of records is {MAX_SAMPLE_SOURCE}.")
+    if len(source) > MAX_SAMPLE_SOURCE: halt(f"Source dataset too large. Maximum allowed number of records is {MAX_SAMPLE_SOURCE}.")
     api = API()       
     print("Gathering metadata .... ")
     targets = add_target_meta(api, targets)

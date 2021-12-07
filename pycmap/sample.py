@@ -15,13 +15,17 @@ from dateutil.parser import parse
 
 
 
+def alias(varName, tableName):
+    """Return an alias for a variable name."""
+    return f"__CMAP__{varName}__{tableName}"
+
 
 def add_target_columns(df, targets):
     """
     Adds new columns (empty) to the dataframe form each target variable.
     """
     for env in targets.values():
-        for v in env.get("variables"):
+        for v in env.get("aliases"):
             if v not in df.columns: df[v] = None
     return df
     
@@ -39,6 +43,9 @@ def add_target_meta(api, targets):
             targets[table]["endTime"] = df.loc[0, "endTime"]
         targets[table]["hasDepth"] = api.has_field(table, "depth")
         targets[table]["isClimatology"] = api.is_climatology(table)
+        targets[table]["aliases"] = []
+        for varName in targets[table]["variables"]:
+            targets[table]["aliases"].append(alias(varName, table))
     return targets
 
 
@@ -68,6 +75,7 @@ def match(df, api, targets, rowIndex, totalRows):
 
     def construc_query(table, env, t, lat, lon, depth):
         variables = env["variables"] 
+        aliases = env["aliases"] 
         timeTolerance = env["tolerances"][0] 
         latTolerance = env["tolerances"][1] 
         lonTolerance = env["tolerances"][2]  
@@ -79,7 +87,7 @@ def match(df, api, targets, rowIndex, totalRows):
             startTime = env["startTime"]
             endTime = env["endTime"]    
             inTimeRange = in_time_window(t, startTime, endTime)
-        selectClause = "SELECT " + ", ".join([f"AVG({v}) {v}" for v in variables]) + " FROM " + table
+        selectClause = "SELECT " + ", ".join([f"AVG({v}) {a}" for v, a in zip(variables, aliases)]) + " FROM " + table
         timeClause = f" WHERE [time] BETWEEN '{shift_dt(t, -timeTolerance)}' AND '{shift_dt(t, timeTolerance)}' "
         if not inTimeRange or isClimatology: timeClause = f" WHERE [month]={get_month(t)} "
         latClause = f" AND lat BETWEEN {lat-latTolerance} AND {lat+latTolerance} "
@@ -106,7 +114,7 @@ def match(df, api, targets, rowIndex, totalRows):
             query = construc_query(table, env, t, lat, lon, depth)
             matchedEnv = api.query(query, servers=["rossby"])
             if len(matchedEnv)>0:
-                for v in env["variables"]: df.at[0, v] = matchedEnv.iloc[0][v] 
+                for v in env["aliases"]: df.at[0, v] = matchedEnv.iloc[0][v] 
     return df
 
 

@@ -47,6 +47,7 @@ def match(df, api, targets, rowIndex, totalRows):
     Takes a single-row of the source dataframe and colocalizes with the 
     target variables specified by `targets`. The tolerance parametrs 
     are also included in `targets`.
+    No match is made between a surface target dataset (such as satellite) and observations deeper than `MAX_SURFACE_DEPTH`.
     """ 
     def get_month(dt):
         return parse(dt).month
@@ -89,6 +90,7 @@ def match(df, api, targets, rowIndex, totalRows):
 
 
     if len(df) != 1: halt(f"Invalid dataframe input.\nExpected a single row dataframe but received {len(df)} rows.")
+    MAX_SURFACE_DEPTH = 10
     rowIndex = df.index.values[0]
     df.reset_index(drop=True, inplace=True)
     t= df.iloc[0]["time"]
@@ -98,10 +100,13 @@ def match(df, api, targets, rowIndex, totalRows):
     if 'depth' in df.columns: depth = df.iloc[0]["depth"]
     for table, env in targets.items():
         print(f"{rowIndex} / {totalRows} ... sampling {table}", end="\r")
-        query = construc_query(table, env, t, lat, lon, depth)
-        matchedEnv = api.query(query, servers=["rainier", "rossby"])
-        if len(matchedEnv)>0:
-            for v in env["variables"]: df.at[0, v] = matchedEnv.iloc[0][v] 
+        # do the colocalization: if either the target dataset has depth field (it's not sattelite, for example) or 
+        # the depth of source measurement is less than `MAX_SURFACE_DEPTH`
+        if env["hasDepth"] or depth <= MAX_SURFACE_DEPTH:       
+            query = construc_query(table, env, t, lat, lon, depth)
+            matchedEnv = api.query(query, servers=["rossby"])
+            if len(matchedEnv)>0:
+                for v in env["variables"]: df.at[0, v] = matchedEnv.iloc[0][v] 
     return df
 
 

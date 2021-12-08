@@ -110,7 +110,8 @@ def match(df, api, targets, rowIndex, totalRows):
         print(f"{rowIndex} / {totalRows} ... sampling {table}", end="\r")
         # do the colocalization: if either the target dataset has depth field (it's not sattelite, for example) or 
         # the depth of source measurement is less than `MAX_SURFACE_DEPTH`
-        if env["hasDepth"] or depth <= MAX_SURFACE_DEPTH:       
+        # if env["hasDepth"] or depth <= MAX_SURFACE_DEPTH:       
+        if True:  # ignoring `MAX_SURFACE_DEPTH` for now 
             query = construc_query(table, env, t, lat, lon, depth)
             matchedEnv = api.query(query, servers=["rossby"])
             if len(matchedEnv)>0:

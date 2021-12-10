@@ -17,7 +17,7 @@ from dateutil.parser import parse
 
 def alias(varName, tableName):
     """Return an alias for a variable name."""
-    return f"__CMAP__{varName}__{tableName}"
+    return f"CMAP_{varName}_{tableName}"
 
 
 def add_target_columns(df, targets):

@@ -15,6 +15,6 @@ if sys.version_info < (3, 0):
         UserWarning
     )
 
-__version__ = '0.2.11'
+__version__ = '0.2.12'
 # __all__ = []
  

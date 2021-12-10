@@ -49,7 +49,7 @@ def add_target_meta(api, targets):
     return targets
 
 
-def match(df, api, targets, rowIndex, totalRows):
+def match(df, api, targets, rowIndex, totalRows, replaceWithMonthlyClimatolog):
     """
     Takes a single-row of the source dataframe and colocalizes with the 
     target variables specified by `targets`. The tolerance parametrs 
@@ -73,7 +73,7 @@ def match(df, api, targets, rowIndex, totalRows):
                     parse(sourceDT) > parse(targetMaxDT)
                     )
 
-    def construc_query(table, env, t, lat, lon, depth):
+    def construc_query(table, env, t, lat, lon, depth, replaceWithMonthlyClimatolog):
         variables = env["variables"] 
         aliases = env["aliases"] 
         timeTolerance = env["tolerances"][0] 
@@ -89,7 +89,7 @@ def match(df, api, targets, rowIndex, totalRows):
             inTimeRange = in_time_window(t, startTime, endTime)
         selectClause = "SELECT " + ", ".join([f"AVG({v}) {a}" for v, a in zip(variables, aliases)]) + " FROM " + table
         timeClause = f" WHERE [time] BETWEEN '{shift_dt(t, -timeTolerance)}' AND '{shift_dt(t, timeTolerance)}' "
-        if not inTimeRange or isClimatology: timeClause = f" WHERE [month]={get_month(t)} "
+        if (not inTimeRange and replaceWithMonthlyClimatolog) or isClimatology: timeClause = f" WHERE [month]={get_month(t)} "
         latClause = f" AND lat BETWEEN {lat-latTolerance} AND {lat+latTolerance} "
         lonClause = f" AND lon BETWEEN {lon-lonTolerance} AND {lon+lonTolerance} "
         depthClause = f" AND depth BETWEEN {depth-depthTolerance} AND {depth+depthTolerance} "
@@ -108,18 +108,18 @@ def match(df, api, targets, rowIndex, totalRows):
     if 'depth' in df.columns: depth = df.iloc[0]["depth"]
     for table, env in targets.items():
         print(f"{rowIndex} / {totalRows} ... sampling {table}", end="\r")
-        # do the colocalization: if either the target dataset has depth field (it's not sattelite, for example) or 
-        # the depth of source measurement is less than `MAX_SURFACE_DEPTH`
-        # if env["hasDepth"] or depth <= MAX_SURFACE_DEPTH:       
-        if True:  # ignoring `MAX_SURFACE_DEPTH` for now 
-            query = construc_query(table, env, t, lat, lon, depth)
+        # # do the colocalization: if either the target dataset has depth field (it's not sattelite, for example) or 
+        # # the depth of source measurement is less than `MAX_SURFACE_DEPTH`
+        # if env["hasDepth"] or depth <= MAX_SURFACE_DEPTH:
+        if True:       
+            query = construc_query(table, env, t, lat, lon, depth, replaceWithMonthlyClimatolog)
             matchedEnv = api.query(query, servers=["rossby"])
             if len(matchedEnv)>0:
                 for v in env["aliases"]: df.at[0, v] = matchedEnv.iloc[0][v] 
     return df
 
 
-def Sample(source, targets):
+def Sample(source, targets, replaceWithMonthlyClimatolog):
     """
     placeholder for the `Sample` class.
 
@@ -153,7 +153,7 @@ def Sample(source, targets):
     colocalizedList, columns = [], []
     print("Sampling starts.")
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        futureObjs = executor.map(match, dfs, [api] * len(dfs), [targets] * len(dfs), list(range(len(dfs))), [len(dfs)] * len(dfs))           
+        futureObjs = executor.map(match, dfs, [api] * len(dfs), [targets] * len(dfs), list(range(len(dfs))), [len(dfs)] * len(dfs), [replaceWithMonthlyClimatolog]*len(dfs))           
         for fo in futureObjs:
             if len(colocalizedList) < 1: columns = list(fo.columns)                                                   
             colocalizedList.append(fo.values.tolist()[0])

@@ -15,7 +15,7 @@ import pandas as pd
 import webbrowser
 import IPython
 
-
+MAX_ROWS = 2000000
 MAX_SAMPLE_SOURCE = 500000
 
 def halt(msg):

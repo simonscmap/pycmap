@@ -21,7 +21,8 @@ from .common import (
     get_token,
     remove_angle_brackets,
     save_config, 
-    inline
+    inline,
+    MAX_ROWS
 )
 
 
@@ -269,6 +270,14 @@ class _REST(object):
         return self.query("EXEC uspDatasets")
 
 
+    def datasets_with_ancillary(self):
+        """
+        Returns a dataframe containing the list of data sets that have been automatically colocalized with ancillary variables (mostly environmental). 
+        A growing number of Simons CMAP datasets are automatically colocalized with a large (100+) number of ancillary parameters derived from satellite and numerical model products.
+        """        
+        return self.query("EXEC uspDatasetsWithAncillary")
+
+
     def head(self, tableName, rows=5):
         """Returns top records of a data set."""
         return self.query("EXEC uspHead '%s', '%d'" % (tableName, rows))
@@ -295,7 +304,7 @@ class _REST(object):
     def get_dataset(self, tableName):
         """
         Returns the entire dataset.
-        It is not recommended to retrieve datasets with more than 100k rows using this method.
+        It is not recommended to retrieve datasets with more than 1 million rows using this method.
         For large datasets, please use the 'space_time' method and retrieve the data in smaller chunks.
         Note that this method does not return the dataset metadata. 
         Use the 'get_dataset_metadata' method to get the dataset metadata.
@@ -311,6 +320,40 @@ class _REST(object):
             msg += "For large datasets, please use the 'space_time' method and retrieve the data in smaller chunks." 
             halt(msg)
         return self.query("SELECT * FROM %s" % tableName)
+
+
+    def get_dataset_with_ancillary(self, tableName, CIP=False):
+        """
+        Returns the entire dataset joined with colocalized ancillary variables. The ancillary variable names are prefixed with `CMAP_`.
+        It is not recommended to retrieve datasets with more than 1 million rows using this method.
+        Note that this method does not return the dataset metadata. 
+        Use the 'get_dataset_metadata' method to get the dataset metadata.
+        """
+        datasetID = self.get_dataset_ID(tableName)
+        df = self.query("SELECT JSON_stats FROM tblDataset_Stats WHERE Dataset_ID=%d " % datasetID)
+        df = pd.read_json(df['JSON_stats'][0])
+        rows = int(df.loc[['count'], 'lat'])
+        if rows > MAX_ROWS:
+            msg = "The requested dataset has %d records.\n" % rows 
+            msg += "It is not recommended to retrieve datasets with more than %d rows using this method.\n" % MAX_ROWS
+            msg += "For large datasets, please use the 'space_time' method and retrieve the data in smaller chunks." 
+            halt(msg)
+
+        anciDatasets = self.datasets_with_ancillary()
+        if not tableName in list(anciDatasets["Table_Name"].values):
+            halt(f"""The selected data set (table: {tableName}) has not been colocalized with ancillary variables. Please let us know if you think we should do so.""")
+        anciTableName = "tblAncillary"
+        if CIP: anciTableName = "tblAncillary_CIP"
+
+        anciCols = list(self.query(f"EXEC uspColumns '{anciTableName}'")["Columns"].values)
+        anciCols = [e for e in anciCols if e not in ('time', 'lat', 'lon', 'depth', 'link')]
+        anciCols = ', '.join(anciCols)        
+        return self.query(f""" 
+                            SELECT t1.*, {anciCols} FROM {tableName} t1 
+                            LEFT JOIN {anciTableName} t2 ON t1.[time]=t2.[time] AND ABS(t1.lat-t2.lat)<0.0001 AND ABS(t1.lon-t2.lon)<0.0001 AND ABS(t1.depth-t2.depth)<0.001
+                            WHERE 
+                            t2.link='{tableName}'
+                          """)
 
 
     def get_dataset_metadata(self, tableName):

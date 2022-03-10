@@ -240,7 +240,15 @@ class _REST(object):
 
     def get_catalog(self):
         """Returns a dataframe containing full Simons CMAP catalog of variables."""
-        return self.query('EXEC uspCatalog')
+        # return self.query('EXEC uspCatalog')
+        return self.query("""SELECT Variable, [Table_Name], [Unit], [Make], [Sensor], [Process_Level], [Study_Domain], 
+                             [Temporal_Resolution], [Spatial_Resolution], [Time_Min], [Time_Max], [Lat_Min], [Lat_Max], 
+                             [Lon_Min], [Lon_Max], [Depth_Min], [Depth_Max], [Variable_25th], [Variable_25th],
+                             [Variable_50th], [Variable_75th], [Variable_Count], [Variable_Mean], [Variable_Std], [Variable_Min], [Variable_Max],   
+                             [Dataset_Name], [Dataset_Short_Name], [Data_Source], [Distributor], [Dataset_Description], 
+                             [Acknowledgement], [Dataset_ID], [ID], [Visualize],  
+                             [Keywords]
+                             FROM dbo.udfCatalog()""")
 
 
     def search_catalog(self, keywords):

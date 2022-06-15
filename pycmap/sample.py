@@ -23,33 +23,33 @@ def alias(varName, tableName):
 def add_target_columns(df, targets):
     """
     Adds new columns (empty) to the dataframe form each target variable.
-    """
+    """    
     for env in targets.values():
         for v in env.get("aliases"):
             if v not in df.columns: df[v] = None
     return df
     
 
-def add_target_meta(api, targets):
+def add_target_meta(api, targets, servers):
     """
     Adds new entries (metadata) to the `targets` dictionary including the 
     temporal coverage of each environmental dataset, if it has depth field, 
     and if it's a climatology dataset.
     """
     for table, env in targets.items():
-        df = api.query(f"SELECT MIN([time]) startTime, MAX([time]) endTime FROM {table}")
+        df = api.query(f"SELECT MIN([time]) startTime, MAX([time]) endTime FROM {table}", servers)
         if len(df) > 0:
             targets[table]["startTime"] = df.loc[0, "startTime"]
             targets[table]["endTime"] = df.loc[0, "endTime"]
-        targets[table]["hasDepth"] = api.has_field(table, "depth")
-        targets[table]["isClimatology"] = api.is_climatology(table)
+        targets[table]["hasDepth"] = api.has_field(table, "depth", servers)
+        targets[table]["isClimatology"] = api.is_climatology(table, servers)
         targets[table]["aliases"] = []
         for varName in targets[table]["variables"]:
             targets[table]["aliases"].append(alias(varName, table))
     return targets
 
 
-def match(df, api, targets, rowIndex, totalRows, replaceWithMonthlyClimatolog):
+def match(df, api, targets, rowIndex, totalRows, replaceWithMonthlyClimatolog, servers):
     """
     Takes a single-row of the source dataframe and colocalizes with the 
     target variables specified by `targets`. The tolerance parametrs 
@@ -107,19 +107,19 @@ def match(df, api, targets, rowIndex, totalRows, replaceWithMonthlyClimatolog):
     depth = 0
     if 'depth' in df.columns: depth = df.iloc[0]["depth"]
     for table, env in targets.items():
-        print(f"{rowIndex} / {totalRows} ... sampling {table}", end="\r")
+        print(f"Sampling {table} ... {rowIndex+1} / {totalRows}", end="\r")
         # # do the colocalization: if either the target dataset has depth field (it's not sattelite, for example) or 
         # # the depth of source measurement is less than `MAX_SURFACE_DEPTH`
         # if env["hasDepth"] or depth <= MAX_SURFACE_DEPTH:
         if True:       
             query = construc_query(table, env, t, lat, lon, depth, replaceWithMonthlyClimatolog)
-            matchedEnv = api.query(query, servers=["rossby"])
+            matchedEnv = api.query(query, servers=servers)
             if len(matchedEnv)>0:
                 for v in env["aliases"]: df.at[0, v] = matchedEnv.iloc[0][v] 
     return df
 
 
-def Sample(source, targets, replaceWithMonthlyClimatolog):
+def Sample(source, targets, replaceWithMonthlyClimatolog, servers=["rossby"]):
     """
     placeholder for the `Sample` class.
 
@@ -147,13 +147,13 @@ def Sample(source, targets, replaceWithMonthlyClimatolog):
     if len(source) > MAX_SAMPLE_SOURCE: halt(f"Source dataset too large. Maximum allowed number of records is {MAX_SAMPLE_SOURCE}.")
     api = API()       
     print("Gathering metadata .... ")
-    targets = add_target_meta(api, targets)
+    targets = add_target_meta(api, targets, servers)
     source = add_target_columns(source, targets)
     dfs = [source.loc[i].to_frame().T for i in range(len(source))]
     colocalizedList, columns = [], []
     print("Sampling starts.")
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        futureObjs = executor.map(match, dfs, [api] * len(dfs), [targets] * len(dfs), list(range(len(dfs))), [len(dfs)] * len(dfs), [replaceWithMonthlyClimatolog]*len(dfs))           
+        futureObjs = executor.map(match, dfs, [api] * len(dfs), [targets] * len(dfs), list(range(len(dfs))), [len(dfs)] * len(dfs), [replaceWithMonthlyClimatolog]*len(dfs), [servers] * len(dfs))           
         for fo in futureObjs:
             if len(colocalizedList) < 1: columns = list(fo.columns)                                                   
             colocalizedList.append(fo.values.tolist()[0])

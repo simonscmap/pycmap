@@ -408,10 +408,10 @@ class _REST(object):
         return self.query("EXEC uspVariableStat '%s', '%s'" % (tableName, varName))
 
 
-    def has_field(self, tableName, varName):
+    def has_field(self, tableName, varName, servers=["rainier"]):
         """Returns a boolean confirming whether a field (varName) exists in a table (data set)."""
         query = "SELECT COL_LENGTH('%s', '%s') AS RESULT " % (tableName, varName)
-        df = self.query(query)['RESULT']
+        df = self.query(query, servers)['RESULT']
         hasField = False
         if len(df)>0: hasField = True
         return hasField
@@ -432,11 +432,15 @@ class _REST(object):
 
 
 
-    def is_climatology(self, tableName):
+    def is_climatology(self, tableName, servers=["rainier"]):
         """
         Returns True if the table represents a climatological data set.    
         """
-        return True if self.query(f"SELECT * FROM tblDatasets d JOIN tblVariables v ON d.ID=v.Dataset_ID WHERE v.Table_Name='{tableName}'").iloc[0]['Climatology'] == 1 else False
+        df = self.query(f"SELECT * FROM tblDatasets d JOIN tblVariables v ON d.ID=v.Dataset_ID WHERE v.Table_Name='{tableName}'", servers)
+        if len(df) > 0:
+            return True if df.iloc[0]['Climatology'] == 1 else False
+        else:
+            return False    
 
 
     def get_references(self, datasetID):
@@ -513,19 +517,21 @@ class _REST(object):
         return self.query('SELECT * FROM dbo.udfCruiseVariables(%d) ' % df.iloc[0]['ID'])
 
 
-    def subset(self, spName, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2):     
+    def subset(self, spName, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, servers):     
         """Returns a subset of data according to space-time constraints."""
-        query = 'EXEC {} ?, ?, ?, ?, ?, ?, ?, ?, ?, ?'.format(spName)
-        args = [table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2]
-        return self.stored_proc(query, args)  
+        # query = 'EXEC {} ?, ?, ?, ?, ?, ?, ?, ?, ?, ?'.format(spName)
+        # args = [table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2]
+        # return self.stored_proc(query, args)  
+        query = f"EXEC {spName} '{table}', '{variable}', '{dt1}', '{dt2}', {lat1}, {lat2}, {lon1}, {lon2}, {depth1}, {depth2}"
+        return self.query(query, servers)  
 
 
-    def space_time(self, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2):     
+    def space_time(self, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, servers=["rainier"]):     
         """
         Returns a subset of data according to space-time constraints.
         The results are ordered by time, lat, lon, and depth (if exists).
         """
-        return self.subset('uspSpaceTime', table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2)
+        return self.subset('uspSpaceTime', table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, servers=servers)
 
 
     @staticmethod
@@ -546,35 +552,35 @@ class _REST(object):
         return usp
 
 
-    def time_series(self, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, interval=None):     
+    def time_series(self, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, interval=None, servers=["rainier"]):     
         """
         Returns a subset of data according to space-time constraints.
         The results are aggregated by time and ordered by time, lat, lon, and depth (if exists).
         The timeseries data can be binned weekyly, monthly, qurterly, or annualy, if interval variable is set (this feature is not applicable to climatological data sets). 
         """
         usp = self._interval_to_uspName(interval)
-        if usp != 'uspTimeSeries' and self.is_climatology(table):
+        if usp != 'uspTimeSeries' and self.is_climatology(table, servers):
             print_tqdm(
                 'Custom binning (monthly, weekly, ...) is not suppoerted for climatological data sets. Table %s represents a climatological data set.' % table, 
                 err=True)
             return pd.DataFrame({})
-        return self.subset(usp, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2)
+        return self.subset(usp, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, servers=servers)
 
 
-    def depth_profile(self, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2):     
+    def depth_profile(self, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, servers=["rainier"]):     
         """
         Returns a subset of data according to space-time constraints.
         The results are aggregated by depth and ordered by depth.
         """
-        return self.subset('uspDepthProfile', table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2)
+        return self.subset('uspDepthProfile', table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, servers=servers)
 
 
-    def section(self, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2):     
+    def section(self, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, servers=["rainier"]):     
         """
         Returns a subset of data according to space-time constraints.
         The results are ordered by time, lat, lon, and depth.
         """
-        return self.subset('uspSectionMap', table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2)
+        return self.subset('uspSectionMap', table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, servers=servers)
 
 
     @staticmethod

@@ -21,6 +21,7 @@ from .common import (
     get_token,
     remove_angle_brackets,
     save_config, 
+    catalog_sql,
     inline,
     MAX_ROWS
 )
@@ -240,15 +241,7 @@ class _REST(object):
 
     def get_catalog(self):
         """Returns a dataframe containing full Simons CMAP catalog of variables."""
-        # return self.query('EXEC uspCatalog')
-        return self.query("""SELECT Variable, [Table_Name], [Unit], [Make], [Sensor], [Process_Level], [Study_Domain], 
-                             [Temporal_Resolution], [Spatial_Resolution], [Time_Min], [Time_Max], [Lat_Min], [Lat_Max], 
-                             [Lon_Min], [Lon_Max], [Depth_Min], [Depth_Max], [Variable_25th], [Variable_25th],
-                             [Variable_50th], [Variable_75th], [Variable_Count], [Variable_Mean], [Variable_Std], [Variable_Min], [Variable_Max],   
-                             [Dataset_Name], [Dataset_Short_Name], [Data_Source], [Distributor], [Dataset_Description], 
-                             [Acknowledgement], [Dataset_ID], [ID], [Visualize],  
-                             [Keywords]
-                             FROM dbo.udfCatalog()""")
+        return self.query(f"{catalog_sql()}")
 
 
     def search_catalog(self, keywords):
@@ -288,19 +281,19 @@ class _REST(object):
 
     def head(self, tableName, rows=5):
         """Returns top records of a data set."""
-        return self.query("EXEC uspHead '%s', '%d'" % (tableName, rows))
+        return self.query(f"select top {rows} * from {tableName}")
 
 
     def columns(self, tableName):
         """Returns the list of data set columns."""
-        return self.query("EXEC uspColumns '%s'" % tableName)
+        return list(self.query(f"select top 1 * from {tableName}").columns)
 
 
     def get_dataset_ID(self, tableName):
         """
         Returns dataset ID.
         """
-        df = self.query("SELECT DISTINCT(Dataset_ID) FROM dbo.udfCatalog() WHERE LOWER(Table_Name)=LOWER('%s') " % tableName)
+        df = self.query("SELECT DISTINCT(Dataset_ID) FROM tblVariables WHERE LOWER(Table_Name)=LOWER('%s') " % tableName)
         if len(df) < 1:
             halt('Invalid table name: %s' % tableName)
         if len(df) > 1:
@@ -379,8 +372,8 @@ class _REST(object):
 
 
     def get_var_catalog(self, tableName, varName):
-        """Returns a single-row dataframe from catalog (udfCatalog) containing all of the variable's info at catalog."""
-        query = "SELECT * FROM [dbo].udfCatalog() WHERE Table_Name='%s' AND Variable='%s'" % (tableName, varName)
+        """Returns a single-row dataframe from catalog containing all of the variable's info at catalog."""
+        query = f"{catalog_sql()} WHERE Table_Name='{tableName}' AND Short_Name='{varName}'"
         return self.query(query)
 
     def get_var_long_name(self, tableName, varName):
@@ -394,24 +387,24 @@ class _REST(object):
 
 
     def get_var_resolution(self, tableName, varName):
-        """Returns a single-row dataframe from catalog (udfCatalog) containing the variable's spatial and temporal resolutions."""
+        """Returns a single-row dataframe from catalog containing the variable's spatial and temporal resolutions."""
         return self.query("EXEC uspVariableResolution '%s', '%s'" % (tableName, varName))
 
 
     def get_var_coverage(self, tableName, varName):
-        """Returns a single-row dataframe from catalog (udfCatalog) containing the variable's spatial and temporal coverage."""
+        """Returns a single-row dataframe from catalog containing the variable's spatial and temporal coverage."""
         return self.query("EXEC uspVariableCoverage '%s', '%s'" % (tableName, varName))
 
 
     def get_var_stat(self, tableName, varName):
-        """Returns a single-row dataframe from catalog (udfCatalog) containing the variable's summary statistics."""
+        """Returns a single-row dataframe from catalog containing the variable's summary statistics."""
         return self.query("EXEC uspVariableStat '%s', '%s'" % (tableName, varName))
 
 
     def has_field(self, tableName, varName, servers=["rainier"]):
         """Returns a boolean confirming whether a field (varName) exists in a table (data set)."""
-        query = "SELECT COL_LENGTH('%s', '%s') AS RESULT " % (tableName, varName)
-        df = self.query(query, servers)['RESULT']
+        query = f"select top 1 {varName} from {tableName}"
+        df = self.query(query, servers)
         hasField = False
         if len(df)>0: hasField = True
         return hasField
@@ -445,7 +438,7 @@ class _REST(object):
 
     def get_references(self, datasetID):
         """Returns a dataframe containing refrences associated with a data set."""
-        query = "SELECT Reference FROM dbo.udfDatasetReferences(%d)" % datasetID
+        query = f"SELECT * FROM tblDataset_References WHERE Dataset_ID={datasetID}" 
         return self.query(query)
 
  
@@ -454,7 +447,7 @@ class _REST(object):
         Returns a dataframe containing the associated metadata for a single variable.
         The returned metadata does not include the list of references and articles associated with the variable.  
         """
-        query = "SELECT * FROM dbo.udfCatalog() WHERE Variable='%s' AND Table_Name='%s'"  % (variable, table)
+        query = f"{catalog_sql()} WHERE Short_Name='{variable}' AND Table_Name='{table}'"
         return self.query(query)
         
 
@@ -514,14 +507,12 @@ class _REST(object):
         Returns a dataframe containing all registered variables (at Simons CMAP) during a cruise.
         """
         df = self.cruise_by_name(cruiseName)
-        return self.query('SELECT * FROM dbo.udfCruiseVariables(%d) ' % df.iloc[0]['ID'])
+        return self.query(f"SELECT * FROM tblVariables WHERE Dataset_ID IN (SELECT Dataset_ID FROM tblDataset_Cruises WHERE Cruise_ID={df.iloc[0]['ID']})")
+
 
 
     def subset(self, spName, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, servers):     
         """Returns a subset of data according to space-time constraints."""
-        # query = 'EXEC {} ?, ?, ?, ?, ?, ?, ?, ?, ?, ?'.format(spName)
-        # args = [table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2]
-        # return self.stored_proc(query, args)  
         query = f"EXEC {spName} '{table}', '{variable}', '{dt1}', '{dt2}', {lat1}, {lat2}, {lon1}, {lon2}, {depth1}, {depth2}"
         return self.query(query, servers)  
 
@@ -556,7 +547,7 @@ class _REST(object):
         """
         Returns a subset of data according to space-time constraints.
         The results are aggregated by time and ordered by time, lat, lon, and depth (if exists).
-        The timeseries data can be binned weekyly, monthly, qurterly, or annualy, if interval variable is set (this feature is not applicable to climatological data sets). 
+        The timeseries data can be binned weekly, monthly, qurterly, or annualy, if interval variable is set (this feature is not applicable to climatological data sets). 
         """
         usp = self._interval_to_uspName(interval)
         if usp != 'uspTimeSeries' and self.is_climatology(table, servers):

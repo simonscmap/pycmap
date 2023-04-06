@@ -58,7 +58,7 @@ Simons CMAP website is under active development at the moment: [https://simonscm
 - [Data Subset: TimeSeries](https://colab.research.google.com/github/simonscmap/pycmap/blob/master/docs/TimeSeries.ipynb)
 - [Data Subset: Depth Profile](https://colab.research.google.com/github/simonscmap/pycmap/blob/master/docs/DepthProfile.ipynb)
 - [Compute Climatology](https://colab.research.google.com/github/simonscmap/pycmap/blob/master/docs/Climatology.ipynb)
-- [Match (colocalize) Datasets](https://colab.research.google.com/github/simonscmap/pycmap/blob/master/docs/Match.ipynb)
+- [Sampling](https://colab.research.google.com/github/simonscmap/pycmap/blob/master/docs/Sampling.ipynb)
 - [Match (colocalize) Cruise Track with Datasets](https://colab.research.google.com/github/simonscmap/pycmap/blob/master/docs/MatchCruise.ipynb)
 
 

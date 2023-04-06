@@ -107,7 +107,7 @@ def match(df, api, targets, rowIndex, totalRows, replaceWithMonthlyClimatolog, s
     depth = 0
     if 'depth' in df.columns: depth = df.iloc[0]["depth"]
     for table, env in targets.items():
-        print(f"Sampling {table} ... {rowIndex+1} / {totalRows}", end="\r")
+        print(f"\rSampling {table} ... {rowIndex+1} / {totalRows}" + " " * 50, end="", flush=True)
         # # do the colocalization: if either the target dataset has depth field (it's not sattelite, for example) or 
         # # the depth of source measurement is less than `MAX_SURFACE_DEPTH`
         # if env["hasDepth"] or depth <= MAX_SURFACE_DEPTH:
@@ -151,21 +151,11 @@ def Sample(source, targets, replaceWithMonthlyClimatolog, servers=["rossby"]):
     source = add_target_columns(source, targets)
     dfs = [source.loc[i].to_frame().T for i in range(len(source))]
     colocalizedList, columns = [], []
-    print("Sampling starts.")
+    print("Sampling starts")
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futureObjs = executor.map(match, dfs, [api] * len(dfs), [targets] * len(dfs), list(range(len(dfs))), [len(dfs)] * len(dfs), [replaceWithMonthlyClimatolog]*len(dfs), [servers] * len(dfs))           
         for fo in futureObjs:
             if len(colocalizedList) < 1: columns = list(fo.columns)                                                   
             colocalizedList.append(fo.values.tolist()[0])
-    print("\nSampling ends.")
+    print("\rSampling finished" + " " * 100, end="")
     return pd.DataFrame(colocalizedList, columns=columns)
-
-
-    # print("Sampling starts ...")
-    # with concurrent.futures.ThreadPoolExecutor() as executor:
-    #     futureObjs = [executor.submit(match, dfs[i], api, targets, i, len(dfs)) for i in range(len(dfs))]
-    #     for res in tqdm(concurrent.futures.as_completed(futureObjs)):
-    #        row = res.result() 
-    #        if len(colocalizedList) < 1: columns = list(row.columns)                                                   
-    #        colocalizedList.append(row.values.tolist()[0])
-    #     return pd.DataFrame(colocalizedList, columns=columns)

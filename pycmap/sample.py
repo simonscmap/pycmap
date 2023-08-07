@@ -35,7 +35,7 @@ def add_target_meta(api, targets, servers):
     Adds new entries (metadata) to the `targets` dictionary including the 
     temporal coverage of each environmental dataset, if it has depth field, 
     and if it's a climatology dataset.
-    """
+    """   
     for table, env in targets.items():
         df = api.query(f"SELECT MIN([time]) startTime, MAX([time]) endTime FROM {table}", servers)
         if len(df) > 0:
@@ -147,6 +147,9 @@ def Sample(source, targets, replaceWithMonthlyClimatolog, servers=["rossby"]):
     if len(source) > MAX_SAMPLE_SOURCE: halt(f"Source dataset too large. Maximum allowed number of records is {MAX_SAMPLE_SOURCE}.")
     api = API()       
     print("Gathering metadata .... ")
+    for tableName in targets.keys():
+        for variable in targets[tableName]["variables"]:
+            api._validate_table_var(tableName, variable)
     targets = add_target_meta(api, targets, servers)
     source = add_target_columns(source, targets)
     dfs = [source.loc[i].to_frame().T for i in range(len(source))]

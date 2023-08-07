@@ -7,8 +7,7 @@ Function: Encapsulates RESTful API logic.
 """
 
 
-import random
-import requests
+import sys, requests, random
 from requests.exceptions import HTTPError
 from urllib.parse import urlencode
 import numpy as np
@@ -237,6 +236,21 @@ class _REST(object):
         self.validate_sp_args(args[0], args[1], args[2], args[3], args[4], args[5], args[6], args[7], args[8], args[9])
         df = self._request(route, method='GET', payload=payload)   
         return df           
+    
+
+    def _validate_table_var(self, table, variable=None):
+        """
+        Check if table and variable exist in the catalog.
+        """
+        if variable:
+            df = self.query(f"exec uspValidate_Table_Variable '{table}', '{variable}'")
+            pot_msg = f"Invalid table ({table}) and/or variable names ({variable})."
+        else:    
+            df = self.query(f"exec uspValidate_Table_Variable '{table}'")
+            pot_msg = f"Invalid table name ({table})."
+        pot_msg += "\nPlease make sure that the dataset is still available in the CMAP catalog (not deprecated)."
+        if len(df) != 1: sys.exit(pot_msg)
+        return len(df) == 1    
 
 
     def get_catalog(self):
@@ -281,11 +295,13 @@ class _REST(object):
 
     def head(self, tableName, rows=5):
         """Returns top records of a data set."""
+        self._validate_table_var(tableName)
         return self.query(f"select top {rows} * from {tableName}")
 
 
     def columns(self, tableName):
         """Returns the list of data set columns."""
+        self._validate_table_var(tableName)
         return list(self.query(f"select top 1 * from {tableName}").columns)
 
 
@@ -299,6 +315,7 @@ class _REST(object):
         if len(df) > 1:
             halt('More than one table found. Please provide a more specific name: ')
             print(df)
+        self._validate_table_var(tableName)    
         return df.iloc[0]['Dataset_ID']            
 
 
@@ -310,6 +327,7 @@ class _REST(object):
         Note that this method does not return the dataset metadata. 
         Use the 'get_dataset_metadata' method to get the dataset metadata.
         """
+        self._validate_table_var(tableName)
         datasetID = self.get_dataset_ID(tableName)
         maxRow = 2000000
         df = self.query("SELECT JSON_stats FROM tblDataset_Stats WHERE Dataset_ID=%d " % datasetID)
@@ -319,7 +337,7 @@ class _REST(object):
             msg = "The requested dataset has %d records.\n" % rows 
             msg += "It is not recommended to retrieve datasets with more than %d rows using this method.\n" % maxRow
             msg += "For large datasets, please use the 'space_time' method and retrieve the data in smaller chunks." 
-            halt(msg)
+            halt(msg)        
         return self.query("SELECT * FROM %s" % tableName)
 
 
@@ -330,6 +348,7 @@ class _REST(object):
         Note that this method does not return the dataset metadata. 
         Use the 'get_dataset_metadata' method to get the dataset metadata.
         """
+        self._validate_table_var(tableName)
         datasetID = self.get_dataset_ID(tableName)
         df = self.query("SELECT JSON_stats FROM tblDataset_Stats WHERE Dataset_ID=%d " % datasetID)
         df = pd.read_json(df['JSON_stats'][0])
@@ -359,6 +378,7 @@ class _REST(object):
 
     def get_dataset_metadata(self, tableName):
         """Returns a dataframe containing the dataset metadata."""
+        self._validate_table_var(tableName)
         return self.query("EXEC uspDatasetMetadata  '%s'" % tableName)
 
 
@@ -367,6 +387,7 @@ class _REST(object):
         Returns a single-row dataframe from tblVariables containing info associated with varName.
         This method is mean to be used internally and will not be exposed at documentations.
         """
+        self._validate_table_var(tableName, varName)
         query = "SELECT * FROM tblVariables WHERE Table_Name='%s' AND Short_Name='%s'" % (tableName, varName)
         return self.query(query)
 
@@ -378,40 +399,45 @@ class _REST(object):
 
     def get_var_long_name(self, tableName, varName):
         """Returns the long name of a given variable."""
+        self._validate_table_var(tableName, varName)
         return self.query("EXEC uspVariableLongName '%s', '%s'" % (tableName, varName)).iloc[0]['Long_Name']
 
 
     def get_unit(self, tableName, varName):
         """Returns the unit for a given variable."""
+        self._validate_table_var(tableName, varName)
         return ' [' + self.query("EXEC uspVariableUnit '%s', '%s'" % (tableName, varName)).iloc[0]['Unit'] + ']' 
 
 
     def get_var_resolution(self, tableName, varName):
         """Returns a single-row dataframe from catalog containing the variable's spatial and temporal resolutions."""
+        self._validate_table_var(tableName, varName)
         return self.query("EXEC uspVariableResolution '%s', '%s'" % (tableName, varName))
 
 
     def get_var_coverage(self, tableName, varName):
         """Returns a single-row dataframe from catalog containing the variable's spatial and temporal coverage."""
+        self._validate_table_var(tableName, varName)
         return self.query("EXEC uspVariableCoverage '%s', '%s'" % (tableName, varName))
 
 
     def get_var_stat(self, tableName, varName):
         """Returns a single-row dataframe from catalog containing the variable's summary statistics."""
+        self._validate_table_var(tableName, varName)
         return self.query("EXEC uspVariableStat '%s', '%s'" % (tableName, varName))
 
 
     def has_field(self, tableName, varName, servers=["rainier"]):
         """Returns a boolean confirming whether a field (varName) exists in a table (data set)."""
-        query = f"select top 1 {varName} from {tableName}"
+        self._validate_table_var(tableName)
+        query = f"select top 1 * from {tableName}"
         df = self.query(query, servers)
-        hasField = False
-        if len(df)>0: hasField = True
-        return hasField
+        return len(df) > 0 and varName in df.columns
 
 
     def is_grid(self, tableName, varName):
         """Returns a boolean indicating whether the variable is a gridded product or has irregular spatial resolution."""
+        self._validate_table_var(tableName, varName)
         grid = True
         query = "SELECT Spatial_Res_ID, RTRIM(LTRIM(Spatial_Resolution)) AS Spatial_Resolution FROM tblVariables "
         query = query + "JOIN tblSpatial_Resolutions ON [tblVariables].Spatial_Res_ID=[tblSpatial_Resolutions].ID "
@@ -429,6 +455,7 @@ class _REST(object):
         """
         Returns True if the table represents a climatological data set.    
         """
+        self._validate_table_var(tableName)
         df = self.query(f"SELECT * FROM tblDatasets d JOIN tblVariables v ON d.ID=v.Dataset_ID WHERE v.Table_Name='{tableName}'", servers)
         if len(df) > 0:
             return True if df.iloc[0]['Climatology'] == 1 else False
@@ -447,6 +474,7 @@ class _REST(object):
         Returns a dataframe containing the associated metadata for a single variable.
         The returned metadata does not include the list of references and articles associated with the variable.  
         """
+        self._validate_table_var(table, variable)
         query = f"{catalog_sql()} WHERE Short_Name='{variable}' AND Table_Name='{table}'"
         return self.query(query)
         
@@ -456,6 +484,7 @@ class _REST(object):
         Returns a dataframe containing the associated metadata.
         The inputs can be string literals (if only one table, and variable is passed) or a list of string literals.
         """
+        self._validate_table_var(table, variable)
         if isinstance(table, str): table = [table]
         if isinstance(variable, str): variable = [variable]
         metadata = pd.DataFrame({})    
@@ -513,6 +542,7 @@ class _REST(object):
 
     def subset(self, spName, table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, servers):     
         """Returns a subset of data according to space-time constraints."""
+        self._validate_table_var(table, variable)
         query = f"EXEC {spName} '{table}', '{variable}', '{dt1}', '{dt2}', {lat1}, {lat2}, {lon1}, {lon2}, {depth1}, {depth2}"
         return self.query(query, servers)  
 
@@ -522,6 +552,7 @@ class _REST(object):
         Returns a subset of data according to space-time constraints.
         The results are ordered by time, lat, lon, and depth (if exists).
         """
+        self._validate_table_var(table, variable)
         return self.subset('uspSpaceTime', table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, servers=servers)
 
 
@@ -549,6 +580,7 @@ class _REST(object):
         The results are aggregated by time and ordered by time, lat, lon, and depth (if exists).
         The timeseries data can be binned weekly, monthly, qurterly, or annualy, if interval variable is set (this feature is not applicable to climatological data sets). 
         """
+        self._validate_table_var(table, variable)
         usp = self._interval_to_uspName(interval)
         if usp != 'uspTimeSeries' and self.is_climatology(table, servers):
             print_tqdm(
@@ -563,6 +595,7 @@ class _REST(object):
         Returns a subset of data according to space-time constraints.
         The results are aggregated by depth and ordered by depth.
         """
+        self._validate_table_var(table, variable)
         return self.subset('uspDepthProfile', table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, servers=servers)
 
 
@@ -571,6 +604,7 @@ class _REST(object):
         Returns a subset of data according to space-time constraints.
         The results are ordered by time, lat, lon, and depth.
         """
+        self._validate_table_var(table, variable)
         return self.subset('uspSectionMap', table, variable, dt1, dt2, lat1, lat2, lon1, lon2, depth1, depth2, servers=servers)
 
 
@@ -600,6 +634,7 @@ class _REST(object):
         For instance, if the dataset is a weekly-averaged product, do not set the `period` to 'dayofyear'.
         The output of this method is a Pandas DataFrame ordered by time, lat, lon, and depth (if exists), respectively.
         """
+        self._validate_table_var(table, variable)
         period = self._climatology_period(period)
         if self.is_climatology(table):
             print_tqdm(
@@ -641,7 +676,9 @@ class _REST(object):
         """
         Takes a cruise name and colocalizes the cruise track with the specified variable(s).
         """
-        df = self.cruise_bounds(cruise)
+        for i in range(len(targetTables)):
+            self._validate_table_var(targetTables[i], targetVars[i])        
+        df = self.cruise_bounds(cruise)     
         return self.match(
                          sourceTable='tblCruise_Trajectory',
                          sourceVar=str(df.iloc[0]['ID']),

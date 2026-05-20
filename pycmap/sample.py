@@ -15,9 +15,52 @@ from dateutil.parser import parse
 
 
 
-def alias(varName, tableName):
-    """Return an alias for a variable name."""
-    return f"CMAP_{varName}_{tableName}"
+# Friendly alias suffix to use for common SQL aggregation functions.
+# Anything not listed here falls back to the lowercased function name
+# (so e.g. ``"MIN"`` becomes the ``_min`` column suffix).
+AGG_SUFFIX = {
+    "AVG": "avg",
+    "STDEV": "std",
+    "COUNT": "count",
+}
+
+
+def _resolve_aggregations(aggFun):
+    """
+    Normalize a user-supplied list of SQL aggregation function names into
+    a list of ``(suffix, sqlFunc)`` pairs.
+
+    Function names are case-insensitive on input; the SQL form is uppercased
+    and the column-name suffix is the lowercased function name (with a few
+    friendlier short forms — see ``AGG_SUFFIX``).
+    """
+    resolved = []
+    for fn in aggFun:
+        sqlFunc = fn.strip().upper()
+        suffix = AGG_SUFFIX.get(sqlFunc, sqlFunc.lower())
+        resolved.append((suffix, sqlFunc))
+    return resolved
+
+
+def alias(varName, tableName, aggregations):
+    """
+    Return the list of column aliases produced for a single target variable.
+
+    For each aggregation in ``aggregations`` the variable contributes one
+    column to the output dataframe, e.g. with the default ``AVG`` only::
+
+        CMAP_sst_tblSST_AVHRR_OI_NRT_avg
+
+    or with ``["AVG", "STDEV", "COUNT"]``::
+
+        CMAP_sst_tblSST_AVHRR_OI_NRT_avg
+        CMAP_sst_tblSST_AVHRR_OI_NRT_std
+        CMAP_sst_tblSST_AVHRR_OI_NRT_count
+
+    :param list aggregations: list of ``(suffix, sqlFunc)`` pairs as produced
+        by ``_resolve_aggregations``.
+    """
+    return [f"CMAP_{varName}_{tableName}_{suffix}" for suffix, _ in aggregations]
 
 
 def add_target_columns(df, targets):
@@ -30,7 +73,7 @@ def add_target_columns(df, targets):
     return df
     
 
-def add_target_meta(api, targets, servers):
+def add_target_meta(api, targets, aggregations, servers):
     """
     Adds new entries (metadata) to the `targets` dictionary including the 
     temporal coverage of each environmental dataset, if it has depth field, 
@@ -43,9 +86,10 @@ def add_target_meta(api, targets, servers):
             targets[table]["endTime"] = df.loc[0, "endTime"]
         targets[table]["hasDepth"] = api.has_field(table, "depth", servers)
         targets[table]["isClimatology"] = api.is_climatology(table, servers)
+        targets[table]["aggregations"] = aggregations
         targets[table]["aliases"] = []
         for varName in targets[table]["variables"]:
-            targets[table]["aliases"].append(alias(varName, table))
+            targets[table]["aliases"].extend(alias(varName, table, aggregations))
     return targets
 
 
@@ -87,7 +131,13 @@ def match(df, api, targets, rowIndex, totalRows, replaceWithMonthlyClimatolog, s
             startTime = env["startTime"]
             endTime = env["endTime"]    
             inTimeRange = in_time_window(t, startTime, endTime)
-        selectClause = "SELECT " + ", ".join([f"AVG({v}) {a}" for v, a in zip(variables, aliases)]) + " FROM " + table
+        selectClause = "SELECT " + ", ".join(
+            [
+                f"{sqlFunc}({v}) CMAP_{v}_{table}_{suffix}"
+                for v in variables
+                for suffix, sqlFunc in env["aggregations"]
+            ]
+        ) + " FROM " + table
         timeClause = f" WHERE [time] BETWEEN '{shift_dt(t, -timeTolerance)}' AND '{shift_dt(t, timeTolerance)}' "
         if (not inTimeRange and replaceWithMonthlyClimatolog) or isClimatology: timeClause = f" WHERE [month]={get_month(t)} "
         latClause = f" AND lat BETWEEN {lat-latTolerance} AND {lat+latTolerance} "
@@ -108,10 +158,9 @@ def match(df, api, targets, rowIndex, totalRows, replaceWithMonthlyClimatolog, s
     if 'depth' in df.columns: depth = df.iloc[0]["depth"]
     for table, env in targets.items():
         print(f"\rSampling {table} ... {rowIndex+1} / {totalRows}" + " " * 50, end="", flush=True)
-        # # do the colocalization: if either the target dataset has depth field (it's not sattelite, for example) or 
-        # # the depth of source measurement is less than `MAX_SURFACE_DEPTH`
-        # if env["hasDepth"] or depth <= MAX_SURFACE_DEPTH:
-        if True:       
+        # do the colocalization if either the target dataset has depth field (it's not satellite, for example) or
+        # the depth of source measurement is less than `MAX_SURFACE_DEPTH`
+        if env["hasDepth"] or depth <= MAX_SURFACE_DEPTH: 
             query = construc_query(table, env, t, lat, lon, depth, replaceWithMonthlyClimatolog)
             matchedEnv = api.query(query, servers=servers)
             if len(matchedEnv)>0:
@@ -119,17 +168,17 @@ def match(df, api, targets, rowIndex, totalRows, replaceWithMonthlyClimatolog, s
     return df
 
 
-def Sample(source, targets, replaceWithMonthlyClimatolog, servers=["rossby"]):
+def Sample(source, targets, replaceWithMonthlyClimatolog=False, agg_fun=["AVG"], servers=["rossby"]):
     """
     placeholder for the `Sample` class.
 
-    Samples the targest datasets using the time-location of the source dataset
+    Samples the target datasets using the time-location of the source dataset
     Returns a dataframe containing the original source data and the joined colocalized target variables.
 
     :param dataframe source: a dataframe containing the source datasets (must have time-location columns).
-    :param dictionary targets: dcitionary containing the target table/variables and tolerance parameters.
-    The items in `tolerances` list are: temporal tolerance [days], meridional tolerance [deg], 
-    zonal tolerance [deg], and vertical tolerance [m], repectively.
+    :param dictionary targets: dictionary containing the target table/variables and tolerance parameters.
+    The items in `tolerances` list are: temporal tolerance [days], meridional tolerance [deg],
+    zonal tolerance [deg], and vertical tolerance [m], respectively.
     `targets` example:
 
     targets = {
@@ -143,14 +192,26 @@ def Sample(source, targets, replaceWithMonthlyClimatolog, servers=["rossby"]):
                                     }
             }
 
+    :param bool replaceWithMonthlyClimatolog: if True, when a source point falls outside the target dataset's
+        temporal range, fall back to matching by month (climatological match).
+    :param list agg_fun: SQL aggregation functions applied to each target variable.
+        Each function produces one output column per variable, named
+        ``CMAP_{var}_{table}_{suffix}`` where the suffix is the lowercased
+        function name (with friendlier short forms for the common ones:
+        ``AVG``->``avg``, ``STDEV``->``std``, ``COUNT``->``count``).
+        Case-insensitive. Defaults to ``["AVG"]`` (the historical behavior).
+        Example: ``["AVG", "STDEV", "COUNT"]``.
+    :param list servers: list of CMAP server names to query against.
+
     """
     if len(source) > MAX_SAMPLE_SOURCE: halt(f"Source dataset too large. Maximum allowed number of records is {MAX_SAMPLE_SOURCE}.")
+    aggregations = _resolve_aggregations(agg_fun)
     api = API()       
     print("Gathering metadata .... ")
     for tableName in targets.keys():
         for variable in targets[tableName]["variables"]:
             api._validate_table_var(tableName, variable)
-    targets = add_target_meta(api, targets, servers)
+    targets = add_target_meta(api, targets, aggregations, servers)
     source = add_target_columns(source, targets)
     dfs = [source.loc[i].to_frame().T for i in range(len(source))]
     colocalizedList, columns = [], []
